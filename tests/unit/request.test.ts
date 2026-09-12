@@ -6,4 +6,5 @@ test("safeNext restricts redirect targets to same-origin paths", () => {
   expect(safeNext("/team")).toBe("/team");
   expect(safeNext("//evil.com")).toBe("/");
   expect(safeNext("https://evil.com")).toBe("/");
+  expect(safeNext("/\\evil.com")).toBe("/");
 });

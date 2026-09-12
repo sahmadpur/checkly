@@ -14,4 +14,5 @@ export async function throttle(bucket: string, capacity = 10, refillPerSec = 0.2
 }
 
 /** Restricts a post-login redirect target to a same-origin path, rejecting protocol-relative URLs like "//evil.com". */
-export const safeNext = (next?: string) => (next && next.startsWith("/") && !next.startsWith("//") ? next : "/");
+export const safeNext = (next?: string) =>
+  next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/";
