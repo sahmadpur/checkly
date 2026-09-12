@@ -64,6 +64,28 @@ test("expired invites are invalid; revoke deletes", async () => {
   expect(await listInvites(ctx)).toEqual([]);
 });
 
+test("accepting succeeds when a property was deleted after the invite was sent", async () => {
+  const { ctx, org, spy } = await setup();
+  const prop2 = await makeProperty(org.id);
+  const prop3 = await makeProperty(org.id);
+  await createInvite(ctx, { email: "b@test.local", role: "WORKER", propertyIds: [prop2.id, prop3.id] });
+  const token = tokenFrom(spy);
+  await db.property.delete({ where: { id: prop3.id } });
+
+  const { userId } = await acceptInvite(token, { name: "Deleted Prop", password: "secret123" });
+  expect(await db.propertyMember.count({ where: { userId } })).toBe(1);
+  expect(await db.propertyMember.findFirst({ where: { userId } })).toMatchObject({ propertyId: prop2.id });
+});
+
+test("new user accept maps a phone collision to CONFLICT", async () => {
+  const { ctx, spy } = await setup();
+  await makeUser({ email: "taken-phone@test.local", phone: "+14155552671" });
+  await createInvite(ctx, { email: "c@test.local", role: "WORKER", propertyIds: [] });
+  const token = tokenFrom(spy);
+  await expect(acceptInvite(token, { name: "Dup Phone", password: "secret123", phone: "+14155552671" }))
+    .rejects.toMatchObject({ code: "CONFLICT" });
+});
+
 test("propertyIds outside the org are rejected", async () => {
   const { ctx } = await setup();
   const foreign = await makeProperty((await makeOrg()).id);

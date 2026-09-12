@@ -1,11 +1,14 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, roleAtLeast } from "@/lib/auth/guard";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, INVITE_TTL_MS, isExpired } from "@/lib/auth/token";
 import { sendMail } from "@/lib/email";
-import { forbidden, invalid } from "@/lib/errors";
+import { conflict, forbidden, invalid } from "@/lib/errors";
+
+const isUniqueViolation = (e: unknown) =>
+  e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
 export async function createInvite(ctx: Ctx, input: { email: string; role: Role; propertyIds: string[] }) {
   const myRole = await requireOrgRole(ctx, "MANAGER");
@@ -69,7 +72,9 @@ export async function acceptInvite(
 ) {
   const inv = await loadValidInvite(token);
   if (!inv) throw invalid("This invite is invalid or expired");
-  const propertyIds = inv.propertyIds as string[];
+  const propertyIds = Array.isArray(inv.propertyIds)
+    ? inv.propertyIds.filter((x): x is string => typeof x === "string")
+    : [];
 
   let phone: string | null = null;
   let passwordHash: string | undefined;
@@ -79,32 +84,43 @@ export async function acceptInvite(
     passwordHash = await hashPassword(opts.password);
   }
 
-  return db.$transaction(async (tx) => {
-    let userId: string;
-    if ("userId" in opts) {
-      const user = await tx.user.findUniqueOrThrow({ where: { id: opts.userId }, select: { email: true } });
-      if (user.email !== inv.email) throw forbidden("This invite was sent to a different email address");
-      userId = opts.userId;
-    } else {
-      const existing = await tx.user.findUnique({ where: { email: inv.email }, select: { id: true } });
-      if (existing) throw invalid("An account with this email already exists. Sign in to accept.");
-      const user = await tx.user.create({
-        data: { name: opts.name, email: inv.email, phone, passwordHash: passwordHash! },
+  try {
+    return await db.$transaction(async (tx) => {
+      let userId: string;
+      if ("userId" in opts) {
+        const user = await tx.user.findUniqueOrThrow({ where: { id: opts.userId }, select: { email: true } });
+        if (user.email !== inv.email) throw forbidden("This invite was sent to a different email address");
+        userId = opts.userId;
+      } else {
+        const existing = await tx.user.findUnique({ where: { email: inv.email }, select: { id: true } });
+        if (existing) throw invalid("An account with this email already exists. Sign in to accept.");
+        const user = await tx.user.create({
+          data: { name: opts.name, email: inv.email, phone, passwordHash: passwordHash! },
+        });
+        userId = user.id;
+      }
+      await tx.orgMember.upsert({
+        where: { orgId_userId: { orgId: inv.orgId, userId } },
+        create: { orgId: inv.orgId, userId, role: inv.role },
+        update: {},
       });
-      userId = user.id;
-    }
-    await tx.orgMember.upsert({
-      where: { orgId_userId: { orgId: inv.orgId, userId } },
-      create: { orgId: inv.orgId, userId, role: inv.role },
-      update: {},
+      if (propertyIds.length) {
+        const live = await tx.property.findMany({
+          where: { id: { in: propertyIds }, orgId: inv.orgId },
+          select: { id: true },
+        });
+        if (live.length) {
+          await tx.propertyMember.createMany({
+            data: live.map(({ id: propertyId }) => ({ propertyId, userId })),
+            skipDuplicates: true,
+          });
+        }
+      }
+      await tx.invite.update({ where: { id: inv.id }, data: { acceptedAt: new Date() } });
+      return { userId, orgId: inv.orgId };
     });
-    if (propertyIds.length) {
-      await tx.propertyMember.createMany({
-        data: propertyIds.map((propertyId) => ({ propertyId, userId })),
-        skipDuplicates: true,
-      });
-    }
-    await tx.invite.update({ where: { id: inv.id }, data: { acceptedAt: new Date() } });
-    return { userId, orgId: inv.orgId };
-  });
+  } catch (e) {
+    if (isUniqueViolation(e)) throw conflict("An account with that email or phone already exists");
+    throw e;
+  }
 }
