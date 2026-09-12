@@ -48,6 +48,7 @@ export async function changeRole(ctx: Ctx, userId: string, role: Role) {
 
 export async function removeMember(ctx: Ctx, userId: string) {
   await requireOrgRole(ctx, "OWNER");
+  if (userId === ctx.userId) throw invalid("You cannot remove yourself");
   await db.$transaction(
     async (tx) => {
       await assertNotLastOwner(tx, ctx.orgId, userId);

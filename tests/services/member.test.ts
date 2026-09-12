@@ -44,6 +44,14 @@ test("removeMember: cannot remove last owner, cleans property memberships", asyn
   expect(await db.propertyMember.count()).toBe(0);
 });
 
+test("removeMember: owner cannot remove themselves even when another owner exists", async () => {
+  const { org, owner, ctx } = await setup();
+  const owner2 = await makeUser({ name: "Owner2" });
+  await makeMember(org.id, owner2.id, "OWNER");
+  await expect(removeMember(ctx(owner.id), owner.id)).rejects.toMatchObject({ code: "INVALID" });
+  expect(await db.orgMember.count({ where: { orgId: org.id, userId: owner.id } })).toBe(1);
+});
+
 test("removeMember: concurrent removal of two owners cannot both succeed (atomic guard)", async () => {
   const { org, owner, ctx } = await setup();
   const owner2 = await makeUser({ name: "Owner2" });
