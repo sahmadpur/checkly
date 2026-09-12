@@ -10,6 +10,7 @@ docker compose up -d            # Postgres + MinIO
 docker compose exec db psql -U checkly -c 'CREATE DATABASE checkly_test;'
 pnpm install
 pnpm db:migrate
+pnpm db:push:test               # applies the schema to checkly_test so tests can run
 pnpm db:seed                    # owner@example.com / password123
 pnpm dev
 ```
@@ -29,6 +30,10 @@ pnpm e2e         # playwright smoke test (spins up its own dev server on :3100)
 `pnpm build` runs `next build --webpack` (Turbopack can't run Serwist's
 service-worker plugin, so production builds use webpack; `pnpm dev` still
 uses Turbopack). Build the image with `docker build -t checkly .`, run
-`pnpm prisma migrate deploy` against the production database, then run the
-image with `DATABASE_URL`, `AUTH_SECRET`, `APP_URL`, `RESEND_API_KEY`,
-`EMAIL_FROM` set.
+`pnpm prisma migrate deploy` against the production database (from a
+checkout or CI job — the image itself has no Prisma CLI in it), then run
+the image with `DATABASE_URL`, `AUTH_SECRET`, `APP_URL`, `RESEND_API_KEY`,
+`EMAIL_FROM` set. Also set `TRUST_PROXY=1` if you're running behind a
+reverse proxy that overwrites `X-Forwarded-For` — without it, rate limiting
+ignores that header (it's otherwise attacker-controlled) and falls back to
+`X-Real-Ip`/"unknown".

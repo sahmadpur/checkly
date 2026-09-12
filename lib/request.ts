@@ -2,9 +2,16 @@ import { headers } from "next/headers";
 import { rateLimit } from "@/lib/ratelimit";
 import { invalid } from "@/lib/errors";
 
+/**
+ * X-Forwarded-For is attacker-controlled unless a trusted reverse proxy overwrites it, so it's
+ * only honored when TRUST_PROXY=1 (set this behind a reverse proxy that does that overwriting).
+ */
 export async function clientIp() {
   const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  if (process.env.TRUST_PROXY === "1") {
+    return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+  }
+  return h.get("x-real-ip") || "unknown";
 }
 
 /** Throws INVALID when the caller exceeds `capacity` calls per window for this bucket name. */
