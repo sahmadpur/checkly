@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { db } from "@/lib/db";
 import * as email from "@/lib/email";
-import { authenticate, changePassword, requestPasswordReset, resetPassword, signup } from "@/lib/services/auth";
+import { authenticate, changePassword, requestPasswordReset, resetPassword, signup, updateProfile } from "@/lib/services/auth";
 
 describe("signup", () => {
   test("creates user, org, and owner membership", async () => {
@@ -68,4 +68,26 @@ test("changePassword requires the current password", async () => {
   await expect(changePassword(userId, "wrong", "newpass456")).rejects.toMatchObject({ code: "INVALID" });
   await changePassword(userId, "secret123", "newpass456");
   expect(await authenticate("ana@test.local", "newpass456")).not.toBeNull();
+});
+
+describe("updateProfile", () => {
+  test("updates name and phone", async () => {
+    const { userId } = await signup({ name: "Ana", email: "ana@test.local", password: "secret123", orgName: "X" });
+    await updateProfile(userId, { name: "Ana B", phone: "+14155552671" });
+    const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(user.name).toBe("Ana B");
+    expect(user.phone).toBe("+14155552671");
+  });
+
+  test("rejects invalid phone with INVALID", async () => {
+    const { userId } = await signup({ name: "Ana", email: "ana@test.local", password: "secret123", orgName: "X" });
+    await expect(updateProfile(userId, { name: "Ana", phone: "12" })).rejects.toMatchObject({ code: "INVALID" });
+  });
+
+  test("rejects a phone already in use by another user with CONFLICT", async () => {
+    await signup({ name: "Bo", email: "bo@test.local", phone: "+14155552671", password: "secret123", orgName: "Y" });
+    const { userId } = await signup({ name: "Ana", email: "ana@test.local", password: "secret123", orgName: "X" });
+    await expect(updateProfile(userId, { name: "Ana", phone: "+14155552671" }))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+  });
 });

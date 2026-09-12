@@ -71,6 +71,17 @@ export async function resetPassword(token: string, newPassword: string) {
   ]);
 }
 
+export async function updateProfile(userId: string, input: { name: string; phone?: string }) {
+  const phone = input.phone?.trim() ? normalizePhone(input.phone) : null;
+  if (input.phone?.trim() && !phone) throw invalid("Phone number is not valid");
+  try {
+    await db.user.update({ where: { id: userId }, data: { name: input.name, phone } });
+  } catch (e) {
+    if (isUniqueViolation(e)) throw conflict("That phone number is already in use");
+    throw e;
+  }
+}
+
 export async function changePassword(userId: string, current: string, next: string) {
   const user = await db.user.findUnique({ where: { id: userId } });
   if (!user) throw notFound("User not found");

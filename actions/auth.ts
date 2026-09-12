@@ -2,14 +2,15 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { AuthError } from "next-auth";
 import { run } from "@/lib/actions";
-import { signIn, signOut } from "@/lib/auth/config";
+import { signIn, signOut, unstable_update } from "@/lib/auth/config";
 import { requireSignedIn } from "@/lib/auth/guard";
 import { throttle, safeNext } from "@/lib/request";
 import { invalid } from "@/lib/errors";
 import * as svc from "@/lib/services/auth";
-import { signupSchema, loginSchema, resetSchema, changePasswordSchema } from "@/actions/auth.schemas";
+import { signupSchema, loginSchema, resetSchema, changePasswordSchema, profileSchema } from "@/actions/auth.schemas";
 
 export async function signupAction(input: z.infer<typeof signupSchema>) {
   const result = await run(async () => {
@@ -62,5 +63,15 @@ export async function changePasswordAction(input: z.infer<typeof changePasswordS
     const { userId } = await requireSignedIn();
     const data = changePasswordSchema.parse(input);
     await svc.changePassword(userId, data.current, data.next);
+  });
+}
+
+export async function updateProfileAction(input: z.infer<typeof profileSchema>) {
+  return run(async () => {
+    const { userId } = await requireSignedIn();
+    const data = profileSchema.parse(input);
+    await svc.updateProfile(userId, data);
+    await unstable_update({ name: data.name } as never);
+    revalidatePath("/", "layout");
   });
 }
