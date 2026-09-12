@@ -21,7 +21,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   }
   const assigned = new Set(property.members.map((m) => m.userId));
   const candidates = canEdit
-    ? (await listMembers(ctx)).filter((m) => !assigned.has(m.userId)).map(({ userId, name, email, phone }) => ({ userId, name, email, phone }))
+    ? (await listMembers(ctx)).filter((m) => !assigned.has(m.userId)).map(({ userId, name }) => ({ userId, name }))
     : [];
 
   return (

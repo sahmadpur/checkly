@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/form-error";
 
 type Member = { userId: string; name: string; email: string | null; phone: string | null };
+type Candidate = { userId: string; name: string };
 
 export function PropertyMembers({ propertyId, members, candidates, canEdit }: {
-  propertyId: string; members: Member[]; candidates: Member[]; canEdit: boolean;
+  propertyId: string; members: Member[]; candidates: Candidate[]; canEdit: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
