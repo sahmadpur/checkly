@@ -3,6 +3,7 @@ import { requireSignedIn } from "@/lib/auth/guard";
 import { listOrgsForUser } from "@/lib/services/org";
 import { AppNav } from "@/components/app-nav";
 import { OrgSwitcher } from "@/components/org-switcher";
+import { InstallBanner } from "@/components/install-banner";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId, orgId } = await requireSignedIn();
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <OrgSwitcher orgs={orgs} activeOrgId={active.id} />
           <span className="text-xs uppercase text-muted-foreground">{active.role}</span>
         </header>
+        <InstallBanner />
         <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6">{children}</main>
       </div>
     </div>
