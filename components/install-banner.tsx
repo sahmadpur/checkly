@@ -13,7 +13,7 @@ export function InstallBanner() {
     try { if (localStorage.getItem(KEY)) return; } catch {}
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone;
     if (standalone) return;
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- must match SSR (false) then sync from a browser-only API after mount, or hydration mismatches.
     if (isIos) setIos(true);
     const handler = (e: Event) => { e.preventDefault(); setEvt(e as BIP); };

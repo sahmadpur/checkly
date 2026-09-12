@@ -1,4 +1,3 @@
-import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
@@ -9,13 +8,14 @@ declare global {
 }
 declare const self: ServiceWorkerGlobalScope;
 
-// Precache the built shell. Everything else is network-first via defaultCache; no offline data by design.
+// Precache the built shell only. No runtime caching: everything else (API calls,
+// RSC payloads, HTML navigations) always goes to the network; no offline data by design.
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [],
 });
 
 serwist.addEventListeners();
