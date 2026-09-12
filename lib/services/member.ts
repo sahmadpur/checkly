@@ -4,7 +4,7 @@ import { Ctx, requireOrgRole } from "@/lib/auth/guard";
 import { invalid, notFound } from "@/lib/errors";
 
 export async function listMembers(ctx: Ctx) {
-  await requireOrgRole(ctx, "WORKER");
+  await requireOrgRole(ctx, "MANAGER");
   const rows = await db.orgMember.findMany({
     where: { orgId: ctx.orgId },
     include: {

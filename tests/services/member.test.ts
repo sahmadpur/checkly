@@ -26,6 +26,11 @@ test("listMembers includes property ids scoped to this org", async () => {
   expect(rows.find((r) => r.userId === worker.id)?.propertyIds).toEqual([p.id]);
 });
 
+test("listMembers requires MANAGER", async () => {
+  const { worker, ctx } = await setup();
+  await expect(listMembers(ctx(worker.id))).rejects.toMatchObject({ code: "FORBIDDEN" });
+});
+
 test("changeRole: owner only, cannot demote last owner", async () => {
   const { owner, worker, ctx } = await setup();
   await expect(changeRole(ctx(worker.id), owner.id, "WORKER")).rejects.toMatchObject({ code: "FORBIDDEN" });
