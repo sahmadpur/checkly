@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: checkly
+          POSTGRES_PASSWORD: checkly
+          POSTGRES_DB: checkly
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: PGPASSWORD=checkly psql -h localhost -U checkly -c 'CREATE DATABASE checkly_test;'
+      - run: |
+          cp .env.example .env
+          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=postgresql://checkly:checkly@localhost:5432/checkly#" .env
+          sed -i "s#^DATABASE_URL_TEST=.*#DATABASE_URL_TEST=postgresql://checkly:checkly@localhost:5432/checkly_test#" .env
+          sed -i "s#^AUTH_SECRET=.*#AUTH_SECRET=$(openssl rand -hex 32)#" .env
+      - run: pnpm db:push:test
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm e2e
