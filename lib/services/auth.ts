@@ -61,6 +61,11 @@ export async function requestPasswordReset(identifier: string) {
   });
 }
 
+export async function getPasswordReset(token: string) {
+  const reset = await db.passwordReset.findUnique({ where: { token } });
+  return !!reset && !reset.usedAt && !isExpired(reset.expiresAt);
+}
+
 export async function resetPassword(token: string, newPassword: string) {
   const reset = await db.passwordReset.findUnique({ where: { token } });
   if (!reset || reset.usedAt || isExpired(reset.expiresAt)) throw invalid("This reset link is invalid or expired");

@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { db } from "@/lib/db";
 import * as email from "@/lib/email";
-import { authenticate, changePassword, requestPasswordReset, resetPassword, signup, updateProfile } from "@/lib/services/auth";
+import { authenticate, changePassword, getPasswordReset, requestPasswordReset, resetPassword, signup, updateProfile } from "@/lib/services/auth";
 
 describe("signup", () => {
   test("creates user, org, and owner membership", async () => {
@@ -59,6 +59,22 @@ describe("password reset", () => {
     const spy = vi.spyOn(email, "sendMail").mockResolvedValue();
     await expect(requestPasswordReset("ghost@test.local")).resolves.toBeUndefined();
     expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  test("getPasswordReset reports validity: missing, used, expired, and valid", async () => {
+    const spy = vi.spyOn(email, "sendMail").mockResolvedValue();
+    await signup({ name: "Ana", email: "ana@test.local", password: "secret123", orgName: "X" });
+    await requestPasswordReset("ana@test.local");
+    const html: string = spy.mock.calls[0][0].html;
+    const prefix = `${process.env.APP_URL}/reset/`;
+    const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const token = html.match(new RegExp(`${escapedPrefix}([0-9a-f]{64})`))![1];
+
+    expect(await getPasswordReset("nonexistent-token")).toBe(false);
+    expect(await getPasswordReset(token)).toBe(true);
+    await resetPassword(token, "newpass456");
+    expect(await getPasswordReset(token)).toBe(false); // used
     spy.mockRestore();
   });
 });
