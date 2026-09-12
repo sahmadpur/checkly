@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { listOrgsForUser, renameOrg } from "@/lib/services/org";
+import { assertMembership, listOrgsForUser, renameOrg } from "@/lib/services/org";
 import { makeMember, makeOrg, makeUser } from "@/tests/helpers/db";
 import { db } from "@/lib/db";
 
@@ -22,4 +22,14 @@ test("renameOrg requires OWNER", async () => {
   await expect(renameOrg({ userId: mgr.id, orgId: org.id }, "New")).rejects.toMatchObject({ code: "FORBIDDEN" });
   await renameOrg({ userId: u.id, orgId: org.id }, "New");
   expect((await db.org.findUniqueOrThrow({ where: { id: org.id } })).name).toBe("New");
+});
+
+test("assertMembership passes for a member and throws FORBIDDEN for a non-member", async () => {
+  const member = await makeUser();
+  const outsider = await makeUser();
+  const org = await makeOrg("Acme");
+  await makeMember(org.id, member.id, "WORKER");
+  const row = await assertMembership(member.id, org.id);
+  expect(row).toMatchObject({ orgId: org.id, userId: member.id, role: "WORKER" });
+  await expect(assertMembership(outsider.id, org.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
 });

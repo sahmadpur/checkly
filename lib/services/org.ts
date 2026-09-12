@@ -1,5 +1,13 @@
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole } from "@/lib/auth/guard";
+import { forbidden } from "@/lib/errors";
+
+/** Throws FORBIDDEN unless the user belongs to the org; otherwise returns the membership row. */
+export async function assertMembership(userId: string, orgId: string) {
+  const member = await db.orgMember.findUnique({ where: { orgId_userId: { orgId, userId } } });
+  if (!member) throw forbidden();
+  return member;
+}
 
 export async function listOrgsForUser(userId: string) {
   const rows = await db.orgMember.findMany({

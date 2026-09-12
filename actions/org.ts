@@ -5,8 +5,6 @@ import { revalidatePath } from "next/cache";
 import { run } from "@/lib/actions";
 import { unstable_update } from "@/lib/auth/config";
 import { requireSignedIn, requireUser } from "@/lib/auth/guard";
-import { forbidden } from "@/lib/errors";
-import { db } from "@/lib/db";
 import * as svc from "@/lib/services/org";
 
 export async function renameOrgAction(input: { name: string }) {
@@ -21,8 +19,7 @@ export async function switchOrgAction(input: { orgId: string }) {
   return run(async () => {
     const { userId } = await requireSignedIn();
     const orgId = z.string().min(1).parse(input.orgId);
-    const member = await db.orgMember.findUnique({ where: { orgId_userId: { orgId, userId } } });
-    if (!member) throw forbidden();
+    await svc.assertMembership(userId, orgId);
     await unstable_update({ activeOrgId: orgId } as never);
     revalidatePath("/", "layout");
   });
