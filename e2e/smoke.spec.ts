@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL_TEST }) });
+test.afterAll(async () => { await db.$disconnect(); });
 const stamp = Date.now();
 const ownerEmail = `owner${stamp}@test.local`;
 const workerEmail = `worker${stamp}@test.local`;
