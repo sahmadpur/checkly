@@ -7,6 +7,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
     fileParallelism: false,
+    server: { deps: { inline: ["next-auth", "@auth/core"] } },
   },
   resolve: { alias: { "@": path.resolve(__dirname, ".") } },
 });

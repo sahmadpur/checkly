@@ -31,3 +31,21 @@ export async function requirePropertyAccess(ctx: Ctx, propertyId: string) {
   if (!property) throw notFound("Property not found");
   return property;
 }
+
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth/config";
+
+/** Reads the session. Redirects to /login when signed out. Throws FORBIDDEN when the user has no active org. */
+export async function requireUser(): Promise<Ctx> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  if (!session.activeOrgId) throw forbidden("No active organization");
+  return { userId: session.user.id, orgId: session.activeOrgId };
+}
+
+/** Like requireUser but allows no active org (for settings and org switcher). */
+export async function requireSignedIn(): Promise<{ userId: string; orgId: string | null }> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  return { userId: session.user.id, orgId: session.activeOrgId };
+}
