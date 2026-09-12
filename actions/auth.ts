@@ -6,7 +6,7 @@ import { AuthError } from "next-auth";
 import { run } from "@/lib/actions";
 import { signIn, signOut } from "@/lib/auth/config";
 import { requireSignedIn } from "@/lib/auth/guard";
-import { throttle } from "@/lib/request";
+import { throttle, safeNext } from "@/lib/request";
 import { invalid } from "@/lib/errors";
 import * as svc from "@/lib/services/auth";
 import { signupSchema, loginSchema, resetSchema, changePasswordSchema } from "@/actions/auth.schemas";
@@ -33,7 +33,7 @@ export async function loginAction(input: z.infer<typeof loginSchema>, next?: str
       throw e;
     }
   });
-  if (result.ok) redirect(next && next.startsWith("/") ? next : "/");
+  if (result.ok) redirect(safeNext(next));
   return result;
 }
 
