@@ -43,3 +43,19 @@ test("removeMember: cannot remove last owner, cleans property memberships", asyn
   expect(await db.orgMember.count({ where: { orgId: org.id } })).toBe(1);
   expect(await db.propertyMember.count()).toBe(0);
 });
+
+test("removeMember: concurrent removal of two owners cannot both succeed (atomic guard)", async () => {
+  const { org, owner, ctx } = await setup();
+  const owner2 = await makeUser({ name: "Owner2" });
+  await makeMember(org.id, owner2.id, "OWNER");
+
+  const results = await Promise.allSettled([
+    removeMember(ctx(owner.id), owner2.id),
+    removeMember(ctx(owner2.id), owner.id),
+  ]);
+
+  const fulfilled = results.filter((r) => r.status === "fulfilled").length;
+  expect(fulfilled).toBeLessThan(2); // at least one must lose the race
+  const remainingOwners = await db.orgMember.count({ where: { orgId: org.id, role: "OWNER" } });
+  expect(remainingOwners).toBeGreaterThanOrEqual(1);
+});

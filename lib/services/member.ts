@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole } from "@/lib/auth/guard";
 import { invalid, notFound } from "@/lib/errors";
@@ -27,25 +27,33 @@ export async function listMembers(ctx: Ctx) {
   }));
 }
 
-async function assertNotLastOwner(orgId: string, userId: string) {
-  const target = await db.orgMember.findUnique({ where: { orgId_userId: { orgId, userId } } });
+async function assertNotLastOwner(tx: Prisma.TransactionClient, orgId: string, userId: string) {
+  const target = await tx.orgMember.findUnique({ where: { orgId_userId: { orgId, userId } } });
   if (!target) throw notFound("Member not found");
   if (target.role !== "OWNER") return;
-  const owners = await db.orgMember.count({ where: { orgId, role: "OWNER" } });
+  const owners = await tx.orgMember.count({ where: { orgId, role: "OWNER" } });
   if (owners <= 1) throw invalid("An organization must keep at least one owner");
 }
 
 export async function changeRole(ctx: Ctx, userId: string, role: Role) {
   await requireOrgRole(ctx, "OWNER");
-  if (role !== "OWNER") await assertNotLastOwner(ctx.orgId, userId);
-  await db.orgMember.update({ where: { orgId_userId: { orgId: ctx.orgId, userId } }, data: { role } });
+  await db.$transaction(
+    async (tx) => {
+      if (role !== "OWNER") await assertNotLastOwner(tx, ctx.orgId, userId);
+      await tx.orgMember.update({ where: { orgId_userId: { orgId: ctx.orgId, userId } }, data: { role } });
+    },
+    { isolationLevel: "Serializable" }
+  );
 }
 
 export async function removeMember(ctx: Ctx, userId: string) {
   await requireOrgRole(ctx, "OWNER");
-  await assertNotLastOwner(ctx.orgId, userId);
-  await db.$transaction([
-    db.propertyMember.deleteMany({ where: { userId, property: { orgId: ctx.orgId } } }),
-    db.orgMember.delete({ where: { orgId_userId: { orgId: ctx.orgId, userId } } }),
-  ]);
+  await db.$transaction(
+    async (tx) => {
+      await assertNotLastOwner(tx, ctx.orgId, userId);
+      await tx.propertyMember.deleteMany({ where: { userId, property: { orgId: ctx.orgId } } });
+      await tx.orgMember.delete({ where: { orgId_userId: { orgId: ctx.orgId, userId } } });
+    },
+    { isolationLevel: "Serializable" }
+  );
 }

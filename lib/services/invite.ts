@@ -71,6 +71,14 @@ export async function acceptInvite(
   if (!inv) throw invalid("This invite is invalid or expired");
   const propertyIds = inv.propertyIds as string[];
 
+  let phone: string | null = null;
+  let passwordHash: string | undefined;
+  if (!("userId" in opts)) {
+    phone = opts.phone?.trim() ? normalizePhone(opts.phone) : null;
+    if (opts.phone?.trim() && !phone) throw invalid("Phone number is not valid");
+    passwordHash = await hashPassword(opts.password);
+  }
+
   return db.$transaction(async (tx) => {
     let userId: string;
     if ("userId" in opts) {
@@ -80,10 +88,8 @@ export async function acceptInvite(
     } else {
       const existing = await tx.user.findUnique({ where: { email: inv.email }, select: { id: true } });
       if (existing) throw invalid("An account with this email already exists. Sign in to accept.");
-      const phone = opts.phone?.trim() ? normalizePhone(opts.phone) : null;
-      if (opts.phone?.trim() && !phone) throw invalid("Phone number is not valid");
       const user = await tx.user.create({
-        data: { name: opts.name, email: inv.email, phone, passwordHash: await hashPassword(opts.password) },
+        data: { name: opts.name, email: inv.email, phone, passwordHash: passwordHash! },
       });
       userId = user.id;
     }
