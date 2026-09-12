@@ -12,3 +12,8 @@ test("run rethrows Next.js redirect errors", async () => {
   const redirectErr = Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT;replace;/login;307;" });
   await expect(run(async () => { throw redirectErr; })).rejects.toBe(redirectErr);
 });
+
+test("run rethrows Next.js notFound/forbidden/unauthorized errors", async () => {
+  const notFoundErr = Object.assign(new Error("NEXT_HTTP_ERROR_FALLBACK"), { digest: "NEXT_HTTP_ERROR_FALLBACK;404" });
+  await expect(run(async () => { throw notFoundErr; })).rejects.toBe(notFoundErr);
+});

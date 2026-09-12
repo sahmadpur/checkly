@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth/config";
 import { forbidden, notFound } from "@/lib/errors";
 
 export type Ctx = { userId: string; orgId: string };
@@ -31,9 +33,6 @@ export async function requirePropertyAccess(ctx: Ctx, propertyId: string) {
   if (!property) throw notFound("Property not found");
   return property;
 }
-
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth/config";
 
 /** Reads the session. Redirects to /login when signed out. Throws FORBIDDEN when the user has no active org. */
 export async function requireUser(): Promise<Ctx> {
