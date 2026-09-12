@@ -14,6 +14,9 @@ async function firstOrgId(userId: string) {
 export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
+  // Self-hosted behind a reverse proxy (Docker/standalone): trust the Host
+  // header instead of rejecting it, or auth() returns null for every request.
+  trustHost: true,
   providers: [
     Credentials({
       credentials: { identifier: {}, password: {} },
