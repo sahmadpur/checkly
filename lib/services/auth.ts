@@ -4,7 +4,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, isExpired, RESET_TTL_MS } from "@/lib/auth/token";
 import { sendMail } from "@/lib/email";
-import { conflict, invalid } from "@/lib/errors";
+import { conflict, invalid, notFound } from "@/lib/errors";
 
 const isUniqueViolation = (e: unknown) =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
@@ -29,7 +29,7 @@ export async function signup(input: { name: string; email: string; phone?: strin
   try {
     return await db.$transaction(async (tx) => {
       const user = await tx.user.create({
-        data: { name: input.name, email: input.email.toLowerCase(), phone, passwordHash },
+        data: { name: input.name, email: input.email.trim().toLowerCase(), phone, passwordHash },
       });
       const org = await tx.org.create({ data: { name: input.orgName } });
       await tx.orgMember.create({ data: { orgId: org.id, userId: user.id, role: "OWNER" } });
@@ -72,7 +72,8 @@ export async function resetPassword(token: string, newPassword: string) {
 }
 
 export async function changePassword(userId: string, current: string, next: string) {
-  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  const user = await db.user.findUnique({ where: { id: userId } });
+  if (!user) throw notFound("User not found");
   if (!(await verifyPassword(current, user.passwordHash))) throw invalid("Current password is incorrect");
   await db.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(next) } });
 }

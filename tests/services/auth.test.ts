@@ -44,7 +44,10 @@ describe("password reset", () => {
     await requestPasswordReset("ana@test.local");
     expect(spy).toHaveBeenCalledTimes(1);
     const html: string = spy.mock.calls[0][0].html;
-    const token = html.match(/reset\/([0-9a-f]{64})/)![1];
+    const prefix = `${process.env.APP_URL}/reset/`;
+    expect(html).toContain(prefix);
+    const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const token = html.match(new RegExp(`${escapedPrefix}([0-9a-f]{64})`))![1];
 
     await resetPassword(token, "newpass456");
     expect(await authenticate("ana@test.local", "newpass456")).not.toBeNull();
