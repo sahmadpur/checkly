@@ -13,3 +13,4 @@ public/sw.js.map
 public/swe-worker-*.js
 
 next-env.d.ts
+tsconfig.tsbuildinfo

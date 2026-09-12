@@ -7,6 +7,11 @@ services:
       POSTGRES_DB: checkly
     ports: ["5432:5432"]
     volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U checkly"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
   minio:
     image: minio/minio
     command: server /data --console-address ":9001"
@@ -15,6 +20,20 @@ services:
       MINIO_ROOT_PASSWORD: minio12345
     ports: ["9000:9000", "9001:9001"]
     volumes: [miniodata:/data]
+  app:
+    build: .
+    profiles: [app]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://checkly:checkly@db:5432/checkly
+      AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Checkly <noreply@example.com>}
+      TRUST_PROXY: ${TRUST_PROXY:-}
+    ports: ["3000:3000"]
 volumes:
   dbdata:
   miniodata:

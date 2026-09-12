@@ -37,3 +37,15 @@ the image with `DATABASE_URL`, `AUTH_SECRET`, `APP_URL`, `RESEND_API_KEY`,
 reverse proxy that overwrites `X-Forwarded-For` — without it, rate limiting
 ignores that header (it's otherwise attacker-controlled) and falls back to
 `X-Real-Ip`/"unknown".
+
+### Run with Docker Compose
+
+```bash
+docker compose up -d                         # Postgres + MinIO
+pnpm prisma migrate deploy                    # from host — the image has no Prisma CLI
+pnpm db:seed                                  # optional
+docker compose --profile app up --build -d    # builds and runs the app on :3000
+```
+
+Open http://localhost:3000. `pnpm dev` and the compose `app` service both
+bind port 3000, so run only one of them at a time.
