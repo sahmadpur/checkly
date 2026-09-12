@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  WORKER
+}
+
+model Org {
+  id         String       @id @default(cuid())
+  name       String
+  createdAt  DateTime     @default(now())
+  members    OrgMember[]
+  properties Property[]
+  invites    Invite[]
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String?          @unique
+  phone           String?          @unique
+  passwordHash    String
+  name            String
+  createdAt       DateTime         @default(now())
+  orgMemberships  OrgMember[]
+  propertyMembers PropertyMember[]
+  passwordResets  PasswordReset[]
+}
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      Role
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+}
+
+model Property {
+  id        String           @id @default(cuid())
+  orgId     String
+  name      String
+  address   String?
+  createdAt DateTime         @default(now())
+  org       Org              @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members   PropertyMember[]
+
+  @@index([orgId])
+}
+
+model PropertyMember {
+  id         String   @id @default(cuid())
+  propertyId String
+  userId     String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, userId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  orgId       String
+  email       String
+  role        Role
+  propertyIds Json      @default("[]")
+  token       String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  org         Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
