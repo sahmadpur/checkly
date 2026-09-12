@@ -7,8 +7,8 @@ import { OrgSwitcher } from "@/components/org-switcher";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId, orgId } = await requireSignedIn();
   const orgs = await listOrgsForUser(userId);
-  const active = orgs.find((o) => o.id === orgId) ?? orgs[0];
-  if (!active) redirect("/no-org");
+  const active = orgs.find((o) => o.id === orgId);
+  if (!active) redirect(orgs[0] ? `/switch-org?to=${orgs[0].id}` : "/no-org");
   return (
     <div className="flex min-h-dvh">
       <AppNav role={active.role} />
