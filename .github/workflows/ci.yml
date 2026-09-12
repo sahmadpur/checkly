@@ -31,10 +31,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # prisma.config.ts resolves DATABASE_URL eagerly at load time (throws if unset), and
+      # .env isn't written until the step below, so generate needs a placeholder here — same
+      # as the Dockerfile's build stage.
+      - run: pnpm prisma generate
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
       - run: PGPASSWORD=checkly psql -h localhost -U checkly -c 'CREATE DATABASE checkly_test;'
       - run: |
           cp .env.example .env
-          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=postgresql://checkly:checkly@localhost:5432/checkly#" .env
+          sed -i "s#^DATABASE_URL=.*#DATABASE_URL=postgresql://checkly:checkly@localhost:5432/checkly_test#" .env
           sed -i "s#^DATABASE_URL_TEST=.*#DATABASE_URL_TEST=postgresql://checkly:checkly@localhost:5432/checkly_test#" .env
           sed -i "s#^AUTH_SECRET=.*#AUTH_SECRET=$(openssl rand -hex 32)#" .env
       - run: pnpm db:push:test
