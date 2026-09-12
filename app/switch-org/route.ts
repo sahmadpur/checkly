@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
 import { auth, unstable_update } from "@/lib/auth/config";
+import { AppError } from "@/lib/errors";
 import { assertMembership } from "@/lib/services/org";
 
 /**
@@ -13,11 +14,14 @@ export async function GET(req: NextRequest) {
   if (!session?.user?.id) redirect("/login");
   const to = req.nextUrl.searchParams.get("to");
   if (!to) redirect("/no-org");
+  let notMember = false;
   try {
     await assertMembership(session.user.id, to);
-  } catch {
-    redirect("/no-org");
+  } catch (e) {
+    if (e instanceof AppError && e.code === "FORBIDDEN") notMember = true;
+    else throw e;
   }
+  if (notMember) redirect("/no-org");
   await unstable_update({ activeOrgId: to } as never);
   redirect("/");
 }
