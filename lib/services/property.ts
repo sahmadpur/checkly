@@ -18,7 +18,12 @@ export async function getProperty(ctx: Ctx, id: string) {
   await requirePropertyAccess(ctx, id);
   const p = await db.property.findUniqueOrThrow({
     where: { id },
-    include: { members: { include: { user: { select: { id: true, name: true, email: true, phone: true } } } } },
+    include: {
+      members: {
+        include: { user: { select: { id: true, name: true, email: true, phone: true } } },
+        orderBy: { user: { name: "asc" } },
+      },
+    },
   });
   return {
     id: p.id,
