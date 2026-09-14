@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { describeRule, dueAtFor, fromUtcMidnight, localToday, matches, nextOccurrence, occurrencesBetween, toUtcMidnight, Rule } from "@/lib/schedule";
+import { describeRule, dueAtFor, fromUtcMidnight, localToday, matches, nextOccurrence, occurrencesBetween, todayYmd, toUtcMidnight, Rule } from "@/lib/schedule";
 
 const base = { dueTime: "09:00", startsOn: new Date("2026-01-01T00:00:00Z"), endsOn: null };
 const daily: Rule = { ...base, freq: "DAILY", daysOfWeek: [], dayOfMonth: null };
@@ -11,6 +11,8 @@ test("localToday uses the org timezone", () => {
   expect(localToday("UTC", now)).toEqual({ y: 2026, m: 3, d: 10 });
   expect(localToday("Asia/Tokyo", now)).toEqual({ y: 2026, m: 3, d: 11 });
   expect(localToday("America/Los_Angeles", now)).toEqual({ y: 2026, m: 3, d: 10 });
+  expect(todayYmd("UTC", now)).toBe("2026-03-10");
+  expect(todayYmd("Asia/Tokyo", now)).toBe("2026-03-11");
 });
 
 test("utc midnight round trip", () => {

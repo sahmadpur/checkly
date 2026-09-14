@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
 import { requireUser, requireOrgRole } from "@/lib/auth/guard";
+import { todayYmd } from "@/lib/schedule";
 import { getProperty } from "@/lib/services/property";
 import { listTemplates } from "@/lib/services/template";
 import { AppError } from "@/lib/errors";
@@ -12,11 +14,11 @@ export default async function NewSchedulePage({ params }: { params: Promise<{ id
   try { await requireOrgRole(ctx, "MANAGER"); } catch (e) { if (e instanceof AppError && e.code === "FORBIDDEN") return <Forbidden />; throw e; }
   let property;
   try { property = await getProperty(ctx, id); } catch (e) { if (e instanceof AppError && e.code === "NOT_FOUND") notFound(); throw e; }
-  const templates = await listTemplates(ctx);
+  const [templates, org] = await Promise.all([listTemplates(ctx), db.org.findUniqueOrThrow({ where: { id: ctx.orgId }, select: { timezone: true } })]);
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">New schedule · {property.name}</h1>
-      <ScheduleForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} />
+      <ScheduleForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} todayYmd={todayYmd(org.timezone)} />
     </div>
   );
 }

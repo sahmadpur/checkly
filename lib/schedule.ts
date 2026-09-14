@@ -32,6 +32,9 @@ export function localToday(tz: string, now = new Date()): LocalDate {
   return { y: w.y, m: w.m, d: w.d };
 }
 
+/** Today in tz as "YYYY-MM-DD" (the value shape of <input type="date">). */
+export const todayYmd = (tz: string, now = new Date()) => toUtcMidnight(localToday(tz, now)).toISOString().slice(0, 10);
+
 export function matches(rule: Rule, d: LocalDate): boolean {
   switch (rule.freq) {
     case "DAILY": return true;
