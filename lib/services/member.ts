@@ -53,6 +53,7 @@ export async function removeMember(ctx: Ctx, userId: string) {
     async (tx) => {
       await assertNotLastOwner(tx, ctx.orgId, userId);
       await tx.checklistInstance.deleteMany({ where: { orgId: ctx.orgId, assigneeId: userId, status: { in: ["OPEN", "REJECTED"] } } });
+      await tx.scheduleAssignee.deleteMany({ where: { userId, schedule: { orgId: ctx.orgId } } });
       await tx.propertyMember.deleteMany({ where: { userId, property: { orgId: ctx.orgId } } });
       await tx.orgMember.delete({ where: { orgId_userId: { orgId: ctx.orgId, userId } } });
     },
