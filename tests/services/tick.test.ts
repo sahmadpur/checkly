@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { db } from "@/lib/db";
-import { makeInstance, makeMember, makeOrg, makeProperty, makeSchedule, makeTemplate, makeUser } from "@/tests/helpers/db";
+import { makeInstance, makeMember, makeProperty, makeSchedule, makeTemplate, makeUser } from "@/tests/helpers/db";
 
 vi.mock("web-push", () => ({ default: { setVapidDetails: vi.fn(), sendNotification: vi.fn(async () => ({})), generateVAPIDKeys: vi.fn() } }));
 import webpush from "web-push";
@@ -57,6 +57,22 @@ describe("generation", () => {
     await db.checklistTemplate.update({ where: { id: tpl.id }, data: { archivedAt: now } });
     expect(await generateForSchedule(await load(ok.id), new Date("2026-03-11T12:00:00Z"))).toBe(0);
   });
+
+  test("assignee removed from the property directly is filtered out; the remaining assignee still gets an instance", async () => {
+    const { org, mgr, w, prop, tpl } = await setup();
+    const w2 = await makeUser({ name: "W2", email: "w2@test.local" });
+    await makeMember(org.id, w2.id, "WORKER");
+    await db.propertyMember.create({ data: { propertyId: prop.id, userId: w2.id } });
+    const s = await makeSchedule({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, createdById: mgr.id, assigneeIds: [w.id, w2.id], startsOn: new Date("2026-03-10T00:00:00Z") });
+    // Removed directly via db, bypassing the ScheduleAssignee cleanup in removePropertyMember.
+    await db.propertyMember.deleteMany({ where: { propertyId: prop.id, userId: w2.id } });
+    const now = new Date("2026-03-10T12:00:00Z");
+    const full = await db.schedule.findUniqueOrThrow({ where: { id: s.id }, include: { assignees: true, template: { select: { archivedAt: true } }, org: { select: { timezone: true } }, runs: { orderBy: { occurrenceDate: "desc" }, take: 1 } } });
+    expect(await generateForSchedule(full, now)).toBe(1);
+    const instances = await db.checklistInstance.findMany({ where: { scheduleId: s.id } });
+    expect(instances).toHaveLength(1);
+    expect(instances[0].assigneeId).toBe(w.id);
+  });
 });
 
 describe("reminders and overdue", () => {
@@ -67,11 +83,11 @@ describe("reminders and overdue", () => {
     await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w.id, assignedById: mgr.id, dueAt: new Date("2026-03-10T14:00:00Z") });
     const late = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w.id, assignedById: mgr.id, dueAt: new Date("2026-03-10T11:00:00Z") });
     await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w.id, assignedById: mgr.id, dueAt: new Date("2026-03-10T11:00:00Z"), status: "SUBMITTED" });
-    expect(await sendReminders(now)).toBe(1);
-    expect(await sendReminders(now)).toBe(0);
+    expect((await sendReminders(now)).count).toBe(1);
+    expect((await sendReminders(now)).count).toBe(0);
     expect((await db.checklistInstance.findUniqueOrThrow({ where: { id: soon.id } })).remindedAt).not.toBeNull();
-    expect(await markOverdue(now)).toBe(1);
-    expect(await markOverdue(now)).toBe(0);
+    expect((await markOverdue(now)).count).toBe(1);
+    expect((await markOverdue(now)).count).toBe(0);
     expect((await db.checklistInstance.findUniqueOrThrow({ where: { id: late.id } })).overdueNotifiedAt).not.toBeNull();
     expect(await db.notification.count({ where: { type: "DUE_SOON" } })).toBe(1);
     expect(await db.notification.count({ where: { type: "OVERDUE" } })).toBe(1);
@@ -84,7 +100,7 @@ describe("drain", () => {
     const mail = vi.spyOn(email, "sendMail").mockResolvedValue();
     await db.pushSubscription.create({ data: { userId: w.id, endpoint: "https://p/1", p256dh: "a", auth: "b" } });
     await notify([{ orgId: org.id, userId: w.id, type: "ASSIGNED", title: "t", body: "b", url: "/checklists/x" }]);
-    expect(await drainOutbox(new Date())).toBe(1);
+    expect((await drainOutbox(new Date())).count).toBe(1);
     expect(send).toHaveBeenCalledTimes(1);
     expect(mail).toHaveBeenCalledTimes(1);
     let n = await db.notification.findFirstOrThrow();
@@ -94,7 +110,7 @@ describe("drain", () => {
     await db.user.update({ where: { id: w.id }, data: { notifyPush: false, notifyEmail: false } });
     await notify([{ orgId: org.id, userId: w.id, type: "OVERDUE", title: "t", body: "b", url: "/x" }]);
     send.mockClear(); mail.mockClear();
-    expect(await drainOutbox(new Date())).toBe(1);
+    expect((await drainOutbox(new Date())).count).toBe(1);
     expect(send).not.toHaveBeenCalled(); expect(mail).not.toHaveBeenCalled();
 
     // gone subscription → deleted; failure → retry then give up
@@ -124,6 +140,7 @@ describe("drain", () => {
 });
 
 test("runTick composes steps and reports counts; second concurrent tick is skipped", async () => {
+  const mail = vi.spyOn(email, "sendMail").mockResolvedValue();
   const { org, mgr, w, prop, tpl } = await setup();
   await makeSchedule({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, createdById: mgr.id, assigneeIds: [w.id], freq: "DAILY", dueTime: "23:59", startsOn: new Date("2026-01-01T00:00:00Z") });
   const [a, b] = await Promise.all([runTick(new Date()), runTick(new Date())]);
@@ -132,4 +149,5 @@ test("runTick composes steps and reports counts; second concurrent tick is skipp
   const done = results.find((r) => !("skipped" in r))!;
   expect(done).toMatchObject({ generated: expect.any(Number), errors: 0 });
   expect((done as { generated: number }).generated).toBeGreaterThanOrEqual(1);
+  mail.mockRestore();
 });

@@ -4,7 +4,7 @@ import { Ctx, requireOrgRole, roleAtLeast } from "@/lib/auth/guard";
 import { hashPassword } from "@/lib/auth/password";
 import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, INVITE_TTL_MS, isExpired } from "@/lib/auth/token";
-import { sendMail } from "@/lib/email";
+import { escapeHtml, sendMail } from "@/lib/email";
 import { conflict, forbidden, invalid } from "@/lib/errors";
 
 const isUniqueViolation = (e: unknown) =>
@@ -33,7 +33,7 @@ export async function createInvite(ctx: Ctx, input: { email: string; role: Role;
   await sendMail({
     to: email,
     subject: `You're invited to ${org.name} on Checkly`,
-    html: `<p>You've been invited to join <b>${org.name}</b> as ${input.role.toLowerCase()}.</p><p><a href="${url}">${url}</a></p><p>This link expires in 7 days.</p>`,
+    html: `<p>You've been invited to join <b>${escapeHtml(org.name)}</b> as ${escapeHtml(input.role.toLowerCase())}.</p><p><a href="${url}">${url}</a></p><p>This link expires in 7 days.</p>`,
   });
   return { id: invite.id };
 }

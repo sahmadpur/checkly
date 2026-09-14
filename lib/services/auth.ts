@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, isExpired, RESET_TTL_MS } from "@/lib/auth/token";
-import { sendMail } from "@/lib/email";
+import { escapeHtml, sendMail } from "@/lib/email";
 import { conflict, invalid, notFound } from "@/lib/errors";
 import { isValidTimezone } from "@/lib/timezones";
 
@@ -59,7 +59,7 @@ export async function requestPasswordReset(identifier: string) {
   await sendMail({
     to: user.email,
     subject: "Reset your Checkly password",
-    html: `<p>Click to reset your password. The link expires in 1 hour.</p><p><a href="${url}">${url}</a></p>`,
+    html: `<p>Click to reset your password. The link expires in 1 hour.</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`,
   });
 }
 
