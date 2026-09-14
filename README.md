@@ -43,6 +43,10 @@ but the browser needs `http://localhost:9000`); when testing from a phone on
 your LAN, set `S3_PUBLIC_ENDPOINT=http://<your-lan-ip>:9000` and `APP_URL`
 to the same host.
 
+Retention is unbounded for now: videos up to 100 MB each accumulate, and there
+is no lifecycle rule or orphan cleanup — deleting a checklist or replacing a
+file leaves the old object behind.
+
 Those direct browser uploads need CORS on the bucket. `pnpm storage:init`
 applies a rule allowing `PUT`/`GET` from `APP_URL`; MinIO has no per-bucket
 CORS API and answers `NotImplemented`, so the script warns and dev relies on
