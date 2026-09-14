@@ -56,7 +56,7 @@ CORS API and answers `NotImplemented`, so the script warns and dev relies on
 
 ```bash
 pnpm test        # vitest: unit + services against checkly_test
-pnpm e2e         # playwright: smoke + checklist flow (spins up its own dev server on :3100)
+pnpm e2e         # playwright: smoke, checklist flow, photo, schedule (spins up its own dev server on :3100)
 ```
 
 When `S3_ENDPOINT` is set, `pnpm test` and `pnpm e2e` need MinIO running
@@ -89,3 +89,61 @@ docker compose --profile app up --build -d    # builds and runs the app on :3000
 
 Open http://localhost:3000. `pnpm dev` and the compose `app` service both
 bind port 3000, so run only one of them at a time.
+
+## Schedules and notifications
+
+Managers set up a recurring schedule (daily, weekly on chosen weekdays, or
+monthly on a day of month) on a property, with a due time and a list of
+worker assignees. Schedules run in the org's timezone (**Settings**, owner
+only): occurrences are created at the start of each due day, one checklist
+instance per assignee. If the tick hasn't run in a while, it catches up
+missed occurrences up to `CATCHUP_DAYS` (14) days back rather than flooding
+years of backlog.
+
+All of that happens inside `POST /api/cron/tick` — it also sends due-soon
+reminders, marks checklists overdue, and drains the push/email outbox — so
+something has to call it on a schedule. It's authenticated with a bearer
+token:
+
+```bash
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" $APP_URL/api/cron/tick
+```
+
+Ways to drive it, pick one:
+
+- **Compose**: `docker compose --profile app up -d` also starts a `cron`
+  sidecar (`curlimages/curl`) that calls the endpoint every 5 minutes.
+- **crontab** on any host that can reach the app:
+  ```
+  */5 * * * * curl -fsS -X POST -H "Authorization: Bearer …" https://your-app/api/cron/tick
+  ```
+- **GitHub Actions**, if you'd rather not run a host or sidecar:
+  ```yaml
+  on:
+    schedule:
+      - cron: "*/5 * * * *"
+  jobs:
+    tick:
+      runs-on: ubuntu-latest
+      steps:
+        - run: curl -fsS -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" https://your-app/api/cron/tick
+  ```
+
+### Push notifications
+
+Push needs a VAPID key pair. Generate one with `pnpm push:keys` (prints
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` —
+paste all three into `.env`) and set `VAPID_SUBJECT` to a `mailto:` address.
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` is inlined into the client bundle at build
+time, so a Docker build needs it passed as a build arg (`docker compose
+build` already does this via `app.build.args`; see `docker-compose.yml`).
+
+Browsers require HTTPS for push (localhost is exempt). On iOS, push only
+works from the PWA after it's been added to the Home Screen — Safari itself
+doesn't support it. Workers opt in from **Settings**: enable push on the
+device, and toggle email/push notification preferences independently.
+
+To verify push manually: install the app on a phone over HTTPS, enable push
+in Settings, have a manager assign or schedule a checklist to that worker,
+and expect a notification within one tick interval (five minutes with the
+compose sidecar/crontab example above).

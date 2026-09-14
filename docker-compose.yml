@@ -22,7 +22,10 @@ services:
     ports: ["9000:9000", "9001:9001"]
     volumes: [miniodata:/data]
   app:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     profiles: [app]
     depends_on:
       db:
@@ -41,7 +44,22 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minio}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-minio12345}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      CRON_SECRET: ${CRON_SECRET:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     ports: ["3000:3000"]
+  cron:
+    image: curlimages/curl:latest
+    profiles: [app]
+    depends_on: [app]
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+    command: >
+      sh -c 'while true; do
+        curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/tick || echo tick failed;
+        sleep 300; done'
 volumes:
   dbdata:
   miniodata:

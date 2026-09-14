@@ -60,7 +60,10 @@ jobs:
           S3_ACCESS_KEY=minio
           S3_SECRET_KEY=minio12345
           S3_FORCE_PATH_STYLE=true
+          CRON_SECRET=ci-secret
           EOF
+          pnpm --silent push:keys >> .env
+          echo "VAPID_SUBJECT=mailto:ci@example.com" >> .env
       - run: pnpm db:push:test
       - run: pnpm storage:init
       - run: pnpm lint
