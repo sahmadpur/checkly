@@ -32,8 +32,12 @@ export async function presignUpload(p: { key: string; contentType: string; conte
   return getSignedUrl(presignClient(), cmd, { expiresIn: p.expiresSec, signableHeaders: new Set(["content-type", "content-length"]) });
 }
 
-export async function presignDownload(key: string, expiresSec = 900) {
-  return getSignedUrl(presignClient(), new GetObjectCommand({ Bucket: env().bucket, Key: key }), { expiresIn: expiresSec });
+export async function presignDownload(key: string, expiresSec = 900, opts: { attachment?: boolean } = {}) {
+  const cmd = new GetObjectCommand({
+    Bucket: env().bucket, Key: key,
+    ResponseContentDisposition: opts.attachment ? "attachment" : undefined,
+  });
+  return getSignedUrl(presignClient(), cmd, { expiresIn: expiresSec });
 }
 
 /** Server-side upload, for tests and scripts. Browsers use presignUpload. */

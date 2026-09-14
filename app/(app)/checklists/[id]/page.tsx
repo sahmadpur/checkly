@@ -22,8 +22,14 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
     throw e;
   }
   const mediaUrls: Record<string, string> = {};
+  // A plain <a download> cannot rename a cross-origin file, so videos get a second URL that forces the save.
+  const downloadUrls: Record<string, string> = {};
   if (storageConfigured()) {
-    for (const i of inst.items) if (i.fileKey) mediaUrls[i.id] = await presignDownload(i.fileKey);
+    for (const i of inst.items) {
+      if (!i.fileKey) continue;
+      mediaUrls[i.id] = await presignDownload(i.fileKey);
+      if (i.type === "VIDEO") downloadUrls[i.id] = await presignDownload(i.fileKey, 900, { attachment: true });
+    }
   }
   return (
     <div className="space-y-6">
@@ -39,7 +45,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
         </div>
       )}
       {inst.status === "APPROVED" && inst.reviewComment && <p className="text-sm text-muted-foreground">Reviewer note: {inst.reviewComment}</p>}
-      {inst.canFill ? <FillForm instance={inst} mediaUrls={mediaUrls} /> : <AnswerView items={inst.items} mediaUrls={mediaUrls} />}
+      {inst.canFill ? <FillForm instance={inst} mediaUrls={mediaUrls} /> : <AnswerView items={inst.items} mediaUrls={mediaUrls} downloadUrls={downloadUrls} />}
       {inst.canReview && <ReviewForm instanceId={inst.id} />}
     </div>
   );

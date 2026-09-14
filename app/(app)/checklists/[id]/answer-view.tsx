@@ -1,7 +1,7 @@
 import type { InstanceItemRow } from "@/lib/services/instance";
 import { isItemAnswered } from "@/lib/media";
 
-export function AnswerView({ items, mediaUrls }: { items: InstanceItemRow[]; mediaUrls: Record<string, string> }) {
+export function AnswerView({ items, mediaUrls, downloadUrls }: { items: InstanceItemRow[]; mediaUrls: Record<string, string>; downloadUrls: Record<string, string> }) {
   return (
     <ol className="space-y-3">
       {items.map((i) => (
@@ -20,7 +20,7 @@ export function AnswerView({ items, mediaUrls }: { items: InstanceItemRow[]; med
               ? <img src={mediaUrls[i.id]} alt={i.label} className="max-h-80 rounded-md" />
               : <span className="text-muted-foreground">Photo unavailable</span>)}
             {i.type === "VIDEO" && i.fileKey && (mediaUrls[i.id]
-              ? <div className="space-y-1"><video controls playsInline src={mediaUrls[i.id]} className="max-h-80 w-full rounded-md" /><a className="text-xs underline" href={mediaUrls[i.id]} download>Download video</a></div>
+              ? <div className="space-y-1"><video controls playsInline src={mediaUrls[i.id]} className="max-h-80 w-full rounded-md" /><a className="text-xs underline" href={downloadUrls[i.id] ?? mediaUrls[i.id]}>Download video</a></div>
               : <span className="text-muted-foreground">Video unavailable</span>)}
           </div>
         </li>
