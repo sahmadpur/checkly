@@ -17,3 +17,13 @@ export function mediaRule(type: "PHOTO" | "VIDEO"): { types: string[]; maxBytes:
     ? { types: [...PHOTO_TYPES], maxBytes: PHOTO_MAX_BYTES, presignSec: 300 }
     : { types: [...VIDEO_TYPES], maxBytes: VIDEO_MAX_BYTES, presignSec: 600 };
 }
+
+export function isItemAnswered(i: { type: string; checked: boolean | null; text: string | null; number: number | null; choice: string | null; fileKey: string | null }) {
+  switch (i.type) {
+    case "CHECKBOX": return i.checked === true;
+    case "TEXT": return !!i.text?.trim();
+    case "NUMBER": return i.number !== null;
+    case "SELECT": return i.choice !== null;
+    default: return i.fileKey !== null;
+  }
+}
