@@ -11,6 +11,7 @@ const PUBLIC = [
   /^\/manifest/,
   /^\/sw\.js$/,
   /^\/icons\//,
+  /^\/api\/cron\//,
 ];
 
 export async function proxy(req: NextRequest) {
