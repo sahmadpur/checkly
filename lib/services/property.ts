@@ -72,5 +72,8 @@ export async function addPropertyMember(ctx: Ctx, propertyId: string, userId: st
 export async function removePropertyMember(ctx: Ctx, propertyId: string, userId: string) {
   await requireOrgRole(ctx, "MANAGER");
   await requirePropertyAccess(ctx, propertyId);
-  await db.propertyMember.deleteMany({ where: { propertyId, userId } });
+  await db.$transaction([
+    db.scheduleAssignee.deleteMany({ where: { userId, schedule: { propertyId } } }),
+    db.propertyMember.deleteMany({ where: { propertyId, userId } }),
+  ]);
 }
