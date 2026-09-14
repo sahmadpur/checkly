@@ -4,9 +4,6 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { run } from "@/lib/actions";
 import { requireUser } from "@/lib/auth/guard";
-import { invalid } from "@/lib/errors";
-import { extForMime, mediaKey, mediaRule } from "@/lib/media";
-import { presignUpload } from "@/lib/storage";
 import * as svc from "@/lib/services/instance";
 import { answerSchema, assignSchema, reviewSchema, uploadRequestSchema } from "@/actions/instance.schemas";
 
@@ -45,20 +42,9 @@ export async function reviewChecklistAction(instanceId: string, input: z.input<t
   });
 }
 
-/** Issues a presigned PUT for a PHOTO or VIDEO item. The key is deterministic per item, so re-uploads overwrite. */
 export async function requestUploadAction(input: z.input<typeof uploadRequestSchema>) {
   return run(async () => {
     const ctx = await requireUser();
-    const data = uploadRequestSchema.parse(input);
-    const inst = await svc.getInstance(ctx, data.instanceId);
-    if (!inst.canFill) throw invalid("This checklist cannot be edited");
-    const item = inst.items.find((i) => i.id === data.itemId);
-    if (!item || (item.type !== "PHOTO" && item.type !== "VIDEO")) throw invalid("Item does not accept files");
-    const rule = mediaRule(item.type);
-    if (!rule.types.includes(data.contentType)) throw invalid(`Unsupported file type ${data.contentType}`);
-    if (data.sizeBytes > rule.maxBytes) throw invalid(`File is too large (max ${Math.round(rule.maxBytes / 1024 / 1024)} MB)`);
-    const key = mediaKey(ctx.orgId, data.instanceId, data.itemId, extForMime(data.contentType)!);
-    const url = await presignUpload({ key, contentType: data.contentType, contentLength: data.sizeBytes, expiresSec: rule.presignSec });
-    return { url, key };
+    return svc.requestUpload(ctx, uploadRequestSchema.parse(input));
   });
 }

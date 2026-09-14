@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { db } from "@/lib/db";
-import { answerItem, assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine, review, submit } from "@/lib/services/instance";
+import { answerItem, assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine, requestUpload, review, submit } from "@/lib/services/instance";
 import { removeMember } from "@/lib/services/member";
+import { mediaKey } from "@/lib/media";
 import { putObject, storageConfigured } from "@/lib/storage";
 import { makeInstance, makeMember, makeOrg, makeProperty, makeTemplate, makeUser } from "@/tests/helpers/db";
 
@@ -204,6 +205,35 @@ describe("answer, submit, review", () => {
     await makeMember(org.id, stranger.id, "MANAGER");
     const inst2 = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w2.id, assignedById: mgr.id, status: "SUBMITTED" });
     await expect(review(ctx(stranger.id), inst2.id, "APPROVED")).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("requestUpload", () => {
+  const upload = { contentType: "image/jpeg", sizeBytes: 1000 };
+
+  test("only the assignee of a fillable checklist, for a media item within the rules", async () => {
+    const { org, mgr, w1, w2, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
+    const [cb, , , , photo] = inst.items;
+    const base = { instanceId: inst.id, itemId: photo.id, ...upload };
+    // Managers can read the instance but not fill it.
+    await expect(requestUpload(ctx(mgr.id), base)).rejects.toMatchObject({ code: "INVALID" });
+    await expect(requestUpload(ctx(w2.id), base)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(requestUpload(ctx(w1.id), { ...base, sizeBytes: 6 * 1024 * 1024 })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(requestUpload(ctx(w1.id), { ...base, contentType: "text/plain" })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(requestUpload(ctx(w1.id), { ...base, itemId: cb.id })).rejects.toMatchObject({ code: "INVALID" });
+    await db.checklistInstance.update({ where: { id: inst.id }, data: { status: "SUBMITTED" } });
+    await expect(requestUpload(ctx(w1.id), base)).rejects.toThrow("cannot be edited");
+  });
+
+  test.skipIf(!storageConfigured())("returns the deterministic key and a presigned URL", async () => {
+    const { org, mgr, w1, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
+    const photo = inst.items[4];
+    const { url, key } = await requestUpload(ctx(w1.id), { instanceId: inst.id, itemId: photo.id, ...upload });
+    expect(key).toBe(mediaKey(org.id, inst.id, photo.id, "jpg"));
+    expect(url).toContain(process.env.S3_BUCKET || "checkly");
+    expect(url).toContain(key);
   });
 });
 

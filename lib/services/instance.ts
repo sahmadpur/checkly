@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/auth/guard";
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { extForMime, isItemAnswered, mediaKey, mediaRule } from "@/lib/media";
-import { objectExists, storageConfigured } from "@/lib/storage";
+import { objectExists, presignUpload, storageConfigured } from "@/lib/storage";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
   (i.status === "OPEN" || i.status === "REJECTED") && i.dueAt.getTime() < now.getTime();
@@ -193,6 +193,21 @@ export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, v
   // Conditional on the instance still being fillable, so a concurrent submit cannot be written around.
   const { count } = await db.instanceItem.updateMany({ where: { id: itemId, instance: { status: { in: ["OPEN", "REJECTED"] } } }, data });
   if (count === 0) throw invalid("Checklist can no longer be edited");
+}
+
+/** Issues a presigned PUT for a PHOTO or VIDEO item. The key is deterministic per item, so re-uploads overwrite. */
+export async function requestUpload(ctx: Ctx, input: { instanceId: string; itemId: string; contentType: string; sizeBytes: number }) {
+  const inst = await getInstance(ctx, input.instanceId);
+  if (!inst.canFill) throw invalid("This checklist cannot be edited");
+  const item = inst.items.find((i) => i.id === input.itemId);
+  if (!item || (item.type !== "PHOTO" && item.type !== "VIDEO")) throw invalid("Item does not accept files");
+  const rule = mediaRule(item.type);
+  const ext = extForMime(input.contentType);
+  if (!ext || !rule.types.includes(input.contentType)) throw invalid(`Unsupported file type ${input.contentType}`);
+  if (input.sizeBytes > rule.maxBytes) throw invalid(`File is too large (max ${Math.round(rule.maxBytes / 1024 / 1024)} MB)`);
+  const key = mediaKey(ctx.orgId, input.instanceId, input.itemId, ext);
+  const url = await presignUpload({ key, contentType: input.contentType, contentLength: input.sizeBytes, expiresSec: rule.presignSec });
+  return { url, key };
 }
 
 export async function submit(ctx: Ctx, instanceId: string) {
