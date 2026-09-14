@@ -15,6 +15,8 @@ COPY . .
 # here), and .env is dockerignored, so a placeholder is needed for this
 # stage only. The real DATABASE_URL is supplied at container run time.
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
 RUN pnpm prisma generate && pnpm build
 
 FROM node:22-alpine AS run
