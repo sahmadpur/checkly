@@ -2,7 +2,7 @@ import { InstanceStatus, ItemType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/auth/guard";
 import { forbidden, invalid, notFound } from "@/lib/errors";
-import { mediaKeyPrefix, mediaRule } from "@/lib/media";
+import { extForMime, mediaKey, mediaRule } from "@/lib/media";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
   (i.status === "OPEN" || i.status === "REJECTED") && i.dueAt.getTime() < now.getTime();
@@ -145,11 +145,15 @@ export function isAnswered(i: { type: ItemType; checked: boolean | null; text: s
 /** Loads an instance the caller may act on as its assignee. NOT_FOUND hides existence from everyone else. */
 async function ownInstance(ctx: Ctx, instanceId: string) {
   const role = await requireOrgRole(ctx, "WORKER");
-  const inst = await db.checklistInstance.findFirst({ where: { id: instanceId, orgId: ctx.orgId }, select: { id: true, assigneeId: true, status: true } });
+  const inst = await db.checklistInstance.findFirst({
+    where: { id: instanceId, orgId: ctx.orgId },
+    select: { id: true, assigneeId: true, status: true, property: { select: { members: { where: { userId: ctx.userId }, select: { userId: true } } } } },
+  });
   if (!inst) throw notFound("Checklist not found");
   if (inst.assigneeId !== ctx.userId) {
-    // A manager who can see it gets FORBIDDEN (they cannot answer for workers); anyone else NOT_FOUND.
-    if (roleAtLeast(role, "MANAGER")) throw forbidden("Only the assignee can fill in this checklist");
+    // A manager with access to the instance's property gets FORBIDDEN (they cannot answer for workers); everyone else NOT_FOUND, to avoid leaking existence.
+    const managerAccess = roleAtLeast(role, "MANAGER") && (role === "OWNER" || inst.property.members.length > 0);
+    if (managerAccess) throw forbidden("Only the assignee can fill in this checklist");
     throw notFound("Checklist not found");
   }
   return inst;
@@ -180,8 +184,9 @@ export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, v
       data.choice = value.choice; break;
     case "PHOTO":
     case "VIDEO": {
-      if (!value.fileKey.startsWith(mediaKeyPrefix(ctx.orgId, instanceId, itemId))) throw invalid("Invalid file key");
-      if (!mediaRule(value.type).types.includes(value.fileType)) throw invalid("Unsupported file type");
+      const ext = extForMime(value.fileType);
+      if (!ext || !mediaRule(value.type).types.includes(value.fileType)) throw invalid("Unsupported file type");
+      if (value.fileKey !== mediaKey(ctx.orgId, instanceId, itemId, ext)) throw invalid("Invalid file key");
       data.fileKey = value.fileKey; data.fileType = value.fileType; break;
     }
   }

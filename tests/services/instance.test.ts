@@ -117,9 +117,14 @@ describe("answer, submit, review", () => {
     await answerItem(ctx(w1.id), inst.id, sel.id, { type: "SELECT", choice: "Good" });
     await expect(answerItem(ctx(w1.id), inst.id, txt.id, { type: "NUMBER", number: 1 })).rejects.toMatchObject({ code: "INVALID" }); // type mismatch
     await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: "org/x/evil.jpg", fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg/../x`, fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/png" })).rejects.toMatchObject({ code: "INVALID" });
     await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/jpeg" });
     await expect(answerItem(ctx(w2.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(answerItem(ctx(mgr.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const strangerMgr = await makeUser();
+    await makeMember(org.id, strangerMgr.id, "MANAGER");
+    await expect(answerItem(ctx(strangerMgr.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "NOT_FOUND" });
     const d = await getInstance(ctx(w1.id), inst.id);
     expect(d.items.map((i) => i.answeredAt !== null)).toEqual([true, false, true, true, true]);
     await db.checklistInstance.update({ where: { id: inst.id }, data: { status: "SUBMITTED" } });
