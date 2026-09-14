@@ -34,8 +34,13 @@ export async function resumeScheduleAction(id: string) {
   return run(async () => { const ctx = await requireUser(); await svc.resumeSchedule(ctx, id); revalidatePath(`/schedules/${id}`); revalidatePath("/properties", "layout"); });
 }
 
-export async function deleteScheduleAction(id: string, propertyId: string) {
-  const result = await run(async () => { const ctx = await requireUser(); await svc.deleteSchedule(ctx, id); revalidatePath(`/properties/${propertyId}`); });
-  if (result.ok) redirect(`/properties/${propertyId}`);
+export async function deleteScheduleAction(id: string) {
+  const result = await run(async () => {
+    const ctx = await requireUser();
+    const { propertyId } = await svc.deleteSchedule(ctx, id);
+    revalidatePath(`/properties/${propertyId}`);
+    return propertyId;
+  });
+  if (result.ok) redirect(`/properties/${result.data}`);
   return result;
 }

@@ -36,7 +36,7 @@ describe("schedule CRUD", () => {
     expect((await getSchedule(ctx(mgr.id), id)).pausedAt).not.toBeNull();
     await resumeSchedule(ctx(mgr.id), id);
     expect((await getSchedule(ctx(mgr.id), id)).pausedAt).toBeNull();
-    await deleteSchedule(ctx(mgr.id), id);
+    expect(await deleteSchedule(ctx(mgr.id), id)).toEqual({ propertyId: prop.id });
     expect(await listSchedules(ctx(mgr.id), prop.id)).toEqual([]);
   });
 

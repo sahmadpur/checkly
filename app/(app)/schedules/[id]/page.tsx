@@ -26,7 +26,7 @@ export default async function SchedulePage({ params }: { params: Promise<{ id: s
         <h1 className="text-xl font-semibold">{s.name}{s.pausedAt ? " (paused)" : ""}</h1>
         <p className="text-sm text-muted-foreground">{s.description}</p>
       </div>
-      <ScheduleControls id={s.id} propertyId={s.propertyId} paused={!!s.pausedAt} />
+      <ScheduleControls id={s.id} paused={!!s.pausedAt} />
       <ScheduleForm propertyId={s.propertyId} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))}
         schedule={{ id: s.id, templateId: s.templateId, assigneeIds: s.assignees.map((a) => a.userId), freq: s.freq, daysOfWeek: s.daysOfWeek, dayOfMonth: s.dayOfMonth, dueTime: s.dueTime, startsOn: s.startsOn, endsOn: s.endsOn }} />
     </div>

@@ -113,6 +113,7 @@ export async function resumeSchedule(ctx: Ctx, id: string) {
 }
 
 export async function deleteSchedule(ctx: Ctx, id: string) {
-  await loadForManager(ctx, id);
+  const s = await loadForManager(ctx, id);
   await db.schedule.delete({ where: { id } });
+  return { propertyId: s.propertyId };
 }
