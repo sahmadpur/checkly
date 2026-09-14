@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { InstanceSummary } from "@/lib/services/instance";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/local-time";
 
 const FILTERS = [["", "All"], ["OPEN", "Open"], ["OVERDUE", "Overdue"], ["SUBMITTED", "Submitted"], ["APPROVED", "Approved"], ["REJECTED", "Rejected"]] as const;
 
@@ -21,7 +22,7 @@ export function PropertyChecklists({ propertyId, instances, filter }: { property
           <li key={i.id} className="p-3 text-sm">
             <Link href={`/checklists/${i.id}`} className="flex flex-wrap items-center justify-between gap-2">
               <span><span className="font-medium">{i.templateName}</span> <span className="text-muted-foreground">· {i.assigneeName}</span></span>
-              <span className="flex items-center gap-2 text-muted-foreground">{formatDateTime(i.dueAt)} <StatusBadge status={i.status} overdue={i.overdue} /></span>
+              <span className="flex items-center gap-2 text-muted-foreground"><LocalTime iso={i.dueAt.toISOString()} fallback={formatDateTime(i.dueAt)} /> <StatusBadge status={i.status} overdue={i.overdue} /></span>
             </Link>
           </li>
         ))}

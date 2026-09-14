@@ -6,6 +6,7 @@ import { presignDownload, storageConfigured } from "@/lib/storage";
 import { AppError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/local-time";
 import { AnswerView } from "./answer-view";
 import { ReviewForm } from "./review-form";
 import { FillForm } from "./fill-form";
@@ -29,7 +30,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
       <div>
         <p className="text-sm text-muted-foreground"><Link href={`/properties/${inst.propertyId}`} className="underline">{inst.propertyName}</Link> · {inst.assigneeName}</p>
         <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">{inst.templateName} <StatusBadge status={inst.status} overdue={inst.overdue} /></h1>
-        <p className="text-sm text-muted-foreground">Due {formatDateTime(inst.dueAt)}</p>
+        <p className="text-sm text-muted-foreground">Due <LocalTime iso={inst.dueAt.toISOString()} fallback={formatDateTime(inst.dueAt)} /></p>
       </div>
       {inst.status === "REJECTED" && inst.reviewComment && (
         <div role="status" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">

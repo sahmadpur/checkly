@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/guard";
 import { listMine, InstanceSummary } from "@/lib/services/instance";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
+import { LocalTime } from "@/components/local-time";
 
 function bucket(all: InstanceSummary[]) {
   const now = new Date();
@@ -28,7 +29,7 @@ function Section({ title, items }: { title: string; items: InstanceSummary[] }) 
           <li key={i.id}>
             <Link href={`/checklists/${i.id}`} className="flex items-center justify-between gap-2 p-3 text-sm">
               <span><span className="font-medium">{i.templateName}</span> <span className="text-muted-foreground">· {i.propertyName}</span></span>
-              <span className="flex items-center gap-2 text-muted-foreground">{formatDateTime(i.dueAt)} <StatusBadge status={i.status} overdue={i.overdue} /></span>
+              <span className="flex items-center gap-2 text-muted-foreground"><LocalTime iso={i.dueAt.toISOString()} fallback={formatDateTime(i.dueAt)} /> <StatusBadge status={i.status} overdue={i.overdue} /></span>
             </Link>
           </li>
         ))}
