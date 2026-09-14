@@ -2,7 +2,13 @@ import { describe, expect, test } from "vitest";
 import { db } from "@/lib/db";
 import { answerItem, assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine, review, submit } from "@/lib/services/instance";
 import { removeMember } from "@/lib/services/member";
+import { putObject, storageConfigured } from "@/lib/storage";
 import { makeInstance, makeMember, makeOrg, makeProperty, makeTemplate, makeUser } from "@/tests/helpers/db";
+
+/** answerItem rejects a media key with no object behind it, so tests must upload first. */
+const seedMedia = async (key: string) => {
+  if (storageConfigured()) await putObject(key, Buffer.from("fake jpeg"), "image/jpeg");
+};
 
 export async function setup() {
   const org = await makeOrg();
@@ -128,6 +134,7 @@ describe("answer, submit, review", () => {
     await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: "org/x/evil.jpg", fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
     await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg/../x`, fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
     await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/png" })).rejects.toMatchObject({ code: "INVALID" });
+    await seedMedia(`org/${org.id}/instances/${inst.id}/${photo.id}.jpg`);
     await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/jpeg" });
     await expect(answerItem(ctx(w2.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await expect(answerItem(ctx(mgr.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -148,12 +155,24 @@ describe("answer, submit, review", () => {
     await answerItem(ctx(w1.id), inst.id, cb.id, { type: "CHECKBOX", checked: true });
     await answerItem(ctx(w1.id), inst.id, num.id, { type: "NUMBER", number: 3 });
     await answerItem(ctx(w1.id), inst.id, sel.id, { type: "SELECT", choice: "Good" });
+    await seedMedia(`org/${org.id}/instances/${inst.id}/${photo.id}.jpg`);
     await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/jpeg" });
     await submit(ctx(w1.id), inst.id);
     const d = await getInstance(ctx(w1.id), inst.id);
     expect(d.status).toBe("SUBMITTED");
     expect(d.submittedAt).not.toBeNull();
     await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("SUBMITTED");
+  });
+
+  test.skipIf(!storageConfigured())("a media answer needs the object to exist", async () => {
+    const { org, mgr, w1, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
+    const photo = inst.items[4];
+    const key = `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`;
+    await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: key, fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
+    await seedMedia(key);
+    await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: key, fileType: "image/jpeg" });
+    expect((await getInstance(ctx(w1.id), inst.id)).items[4].fileKey).toBe(key);
   });
 
   test("a racing second submit loses", async () => {

@@ -1,4 +1,4 @@
-import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutBucketCorsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, HeadObjectCommand, PutBucketCorsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const env = () => ({
@@ -36,6 +36,21 @@ export async function presignDownload(key: string, expiresSec = 900) {
   return getSignedUrl(presignClient(), new GetObjectCommand({ Bucket: env().bucket, Key: key }), { expiresIn: expiresSec });
 }
 
+/** Server-side upload, for tests and scripts. Browsers use presignUpload. */
+export async function putObject(key: string, body: Buffer | Uint8Array | string, contentType: string) {
+  await internalClient().send(new PutObjectCommand({ Bucket: env().bucket, Key: key, Body: body, ContentType: contentType }));
+}
+
+export async function objectExists(key: string) {
+  try {
+    await internalClient().send(new HeadObjectCommand({ Bucket: env().bucket, Key: key }));
+    return true;
+  } catch (e) {
+    if (isMissing(e)) return false;
+    throw e;
+  }
+}
+
 export async function deleteObject(key: string) {
   await internalClient().send(new DeleteObjectCommand({ Bucket: env().bucket, Key: key }));
 }
@@ -45,9 +60,9 @@ const errNames = (e: unknown) => {
   return { names: [x?.name, x?.Code], status: x?.$metadata?.httpStatusCode };
 };
 
-const isMissingBucket = (e: unknown) => {
+const isMissing = (e: unknown) => {
   const { names, status } = errNames(e);
-  return status === 404 || names.includes("NotFound") || names.includes("NoSuchBucket");
+  return status === 404 || names.includes("NotFound") || names.includes("NoSuchBucket") || names.includes("NoSuchKey");
 };
 
 export async function ensureBucket() {
@@ -56,7 +71,7 @@ export async function ensureBucket() {
   try {
     await c.send(new HeadBucketCommand({ Bucket }));
   } catch (e) {
-    if (!isMissingBucket(e)) throw e;
+    if (!isMissing(e)) throw e;
     await c.send(new CreateBucketCommand({ Bucket }));
   }
   try {

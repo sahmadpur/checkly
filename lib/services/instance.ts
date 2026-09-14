@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/auth/guard";
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { extForMime, isItemAnswered, mediaKey, mediaRule } from "@/lib/media";
+import { objectExists, storageConfigured } from "@/lib/storage";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
   (i.status === "OPEN" || i.status === "REJECTED") && i.dueAt.getTime() < now.getTime();
@@ -184,6 +185,8 @@ export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, v
       const ext = extForMime(value.fileType);
       if (!ext || !mediaRule(value.type).types.includes(value.fileType)) throw invalid("Unsupported file type");
       if (value.fileKey !== mediaKey(ctx.orgId, instanceId, itemId, ext)) throw invalid("Invalid file key");
+      // The presigned PUT happens in the browser, so nothing else proves the upload actually landed.
+      if (storageConfigured() && !(await objectExists(value.fileKey))) throw invalid("Upload the file first");
       data.fileKey = value.fileKey; data.fileType = value.fileType; break;
     }
   }
