@@ -59,9 +59,11 @@ pnpm test        # vitest: unit + services against checkly_test
 pnpm e2e         # playwright: smoke + checklist flow (spins up its own dev server on :3100)
 ```
 
-`pnpm e2e` needs MinIO running (`docker compose up -d`) and its bucket created
-(`pnpm storage:init`) — the checklist flow test uploads a photo and skips
-itself if `S3_ENDPOINT` isn't set.
+When `S3_ENDPOINT` is set, `pnpm test` and `pnpm e2e` need MinIO running
+(`docker compose up -d`) and its bucket created (`pnpm storage:init`): the
+media service tests upload real objects, and the separate photo e2e test
+skips itself when `S3_ENDPOINT` is unset. The main checklist flow test runs
+without storage.
 
 ## Deploy
 
