@@ -46,6 +46,17 @@ describe("inbox", () => {
     expect(await unreadCount(ctx(w.id))).toBe(0);
     expect(await unreadCount(ctx(owner.id))).toBe(1);
   });
+
+  test("markRead from another org is NOT_FOUND", async () => {
+    const { org, w } = await setup();
+    await notify([{ orgId: org.id, userId: w.id, type: "ASSIGNED", title: "a", body: "", url: "/x" }]);
+    const n = await db.notification.findFirstOrThrow();
+    const other = await makeOrg();
+    const outsider = await makeUser();
+    await makeMember(other.id, outsider.id, "OWNER");
+    await expect(markRead({ userId: outsider.id, orgId: other.id }, n.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect((await db.notification.findUniqueOrThrow({ where: { id: n.id } })).readAt).toBeNull();
+  });
 });
 
 describe("preferences and push subscriptions", () => {
@@ -62,5 +73,18 @@ describe("preferences and push subscriptions", () => {
     expect(subs[0].p256dh).toBe("a2");
     await deletePushSubscription(ctx(w.id), "https://push.example/1");
     expect(await db.pushSubscription.count()).toBe(0);
+  });
+
+  test("subscriptions are per user: another user cannot delete one, but saving the same endpoint takes it over", async () => {
+    const { w, owner, ctx } = await setup();
+    await savePushSubscription(ctx(w.id), { endpoint: "https://push.example/shared", keys: { p256dh: "a", auth: "b" } });
+    await deletePushSubscription(ctx(owner.id), "https://push.example/shared");
+    const still = await db.pushSubscription.findFirstOrThrow();
+    expect(still.userId).toBe(w.id);
+    // Same browser, new sign-in: the endpoint moves to whoever last subscribed on it.
+    await savePushSubscription(ctx(owner.id), { endpoint: "https://push.example/shared", keys: { p256dh: "c", auth: "d" } });
+    const subs = await db.pushSubscription.findMany();
+    expect(subs).toHaveLength(1);
+    expect(subs[0].userId).toBe(owner.id);
   });
 });

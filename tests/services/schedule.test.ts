@@ -44,6 +44,13 @@ describe("schedule CRUD", () => {
     const { org, mgr, w1, prop, ctx, base } = await setup();
     const { id } = await createSchedule(ctx(mgr.id), prop.id, base);
     await expect(listSchedules(ctx(w1.id), prop.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const worker = ctx(w1.id);
+    await expect(createSchedule(worker, prop.id, base)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(updateSchedule(worker, id, base)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(pauseSchedule(worker, id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(resumeSchedule(worker, id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(deleteSchedule(worker, id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(await db.schedule.count({ where: { id } })).toBe(1);
     const stranger = await makeUser();
     await makeMember(org.id, stranger.id, "MANAGER");
     await expect(getSchedule(ctx(stranger.id), id)).rejects.toMatchObject({ code: "NOT_FOUND" });

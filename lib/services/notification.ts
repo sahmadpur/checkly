@@ -62,6 +62,12 @@ export async function setPreferences(ctx: Ctx, p: { notifyPush?: boolean; notify
 
 const b64url = /^[A-Za-z0-9_-]+=*$/;
 
+/**
+ * Upsert by endpoint, reassigning it to the current user. A push endpoint identifies one
+ * browser profile, not one account: on a shared device the previous user's subscription is
+ * dead the moment someone else signs in and subscribes, so taking it over is what keeps a
+ * single row per browser and stops notifications going to the wrong person.
+ */
 export async function savePushSubscription(ctx: Ctx, sub: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string | null }) {
   if (!/^https:\/\//.test(sub.endpoint)) throw invalid("Push endpoint must be https");
   if (!b64url.test(sub.keys.p256dh) || !b64url.test(sub.keys.auth)) throw invalid("Invalid subscription keys");
