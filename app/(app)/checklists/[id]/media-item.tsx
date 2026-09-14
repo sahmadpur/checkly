@@ -19,7 +19,7 @@ export function MediaItem({ instanceId, itemId, type, existingUrl, onSaved }: Pr
     setError(null);
     try {
       const blob = type === "PHOTO" ? await resizeImage(file) : file;
-      const contentType = type === "PHOTO" ? "image/jpeg" : file.type;
+      const contentType = blob.type || file.type;
       if (!rule.types.includes(contentType)) throw new Error(`Unsupported file type ${contentType || "(unknown)"}`);
       if (blob.size > rule.maxBytes) throw new Error(`File is too large (max ${Math.round(rule.maxBytes / 1024 / 1024)} MB)`);
       setProgress(0);

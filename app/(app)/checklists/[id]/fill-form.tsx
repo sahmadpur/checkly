@@ -19,12 +19,14 @@ export function FillForm({ instance, mediaUrls }: { instance: InstanceDetail; me
   const patch = (id: string, p: Partial<InstanceItemRow>) => setItems((xs) => xs.map((x) => (x.id === id ? { ...x, ...p } : x)));
 
   async function save(item: InstanceItemRow, value: Parameters<typeof answerItemAction>[2], local: Partial<InstanceItemRow>) {
+    const prev = items.find((x) => x.id === item.id);
     patch(item.id, local);
     setSaving((s) => ({ ...s, [item.id]: true }));
     const r = await answerItemAction(instance.id, item.id, value);
     setSaving((s) => ({ ...s, [item.id]: false }));
     setErrors((e) => ({ ...e, [item.id]: r.ok ? "" : r.error }));
     if (r.ok) patch(item.id, { answeredAt: new Date() });
+    else if (prev) patch(item.id, prev);
   }
 
   const required = items.filter((i) => i.required);
