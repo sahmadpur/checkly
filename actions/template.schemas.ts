@@ -1,12 +1,15 @@
 import { z } from "zod";
 
+const numberOrNull = z.preprocess((v) => (v === "" || v == null ? null : Number(v)), z.number().nullable());
+
 export const itemSchema = z.object({
   type: z.enum(["CHECKBOX", "TEXT", "NUMBER", "PHOTO", "VIDEO", "SELECT"]),
   label: z.string().trim().min(1).max(200),
   required: z.boolean(),
   options: z.array(z.string().trim().max(100)).default([]),
-  min: z.coerce.number().nullable().default(null),
-  max: z.coerce.number().nullable().default(null),
+  // An empty <input type="number"> posts "", which z.coerce.number() would turn into 0.
+  min: numberOrNull,
+  max: numberOrNull,
 });
 
 export const templateSchema = z.object({

@@ -4,7 +4,7 @@ export const assignSchema = z.object({
   templateId: z.string().min(1),
   propertyId: z.string().min(1),
   assigneeIds: z.array(z.string().min(1)).min(1),
-  dueAt: z.string().datetime().transform((s) => new Date(s)),
+  dueAt: z.iso.datetime().transform((s) => new Date(s)),
 });
 
 export const answerSchema = z.discriminatedUnion("type", [

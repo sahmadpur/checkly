@@ -6,6 +6,11 @@ test("template schema coerces item fields", () => {
   const r = templateSchema.safeParse({ name: " A ", items: [{ type: "NUMBER", label: "N", required: true, options: [], min: "1", max: null }] });
   expect(r.success).toBe(true);
   if (r.success) expect(r.data.items[0].min).toBe(1);
+  const empty = templateSchema.safeParse({ name: "A", items: [{ type: "NUMBER", label: "N", required: true, options: [], min: "", max: "" }] });
+  expect(empty.success).toBe(true);
+  if (empty.success) expect([empty.data.items[0].min, empty.data.items[0].max]).toEqual([null, null]);
+  const absent = templateSchema.safeParse({ name: "A", items: [{ type: "TEXT", label: "T", required: true, options: [] }] });
+  expect(absent.success && absent.data.items[0].min).toBe(null);
   expect(templateSchema.safeParse({ name: "", items: [] }).success).toBe(false);
 });
 
