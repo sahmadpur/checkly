@@ -5,10 +5,12 @@ import { getProperty } from "@/lib/services/property";
 import { listMembers } from "@/lib/services/member";
 import { listForProperty } from "@/lib/services/instance";
 import { listTemplates } from "@/lib/services/template";
+import { listSchedules } from "@/lib/services/schedule";
 import { AppError } from "@/lib/errors";
 import { PropertyForm } from "../new/property-form";
 import { PropertyMembers } from "./members";
 import { PropertyChecklists } from "./checklists";
+import { PropertySchedules } from "./schedules";
 import { AssignForm } from "./assign-form";
 import { DeleteProperty } from "./danger";
 
@@ -32,6 +34,7 @@ export default async function PropertyPage({ params, searchParams }: { params: P
   const filter = ["OPEN", "OVERDUE", "SUBMITTED", "APPROVED", "REJECTED"].includes(status ?? "") ? status! : "";
   const instances = await listForProperty(ctx, id, filter ? { status: filter as InstanceStatus | "OVERDUE" } : {});
   const templates = canEdit ? await listTemplates(ctx) : [];
+  const schedules = canEdit ? await listSchedules(ctx, id) : [];
 
   return (
     <div className="space-y-8">
@@ -42,6 +45,7 @@ export default async function PropertyPage({ params, searchParams }: { params: P
       {canEdit && <PropertyForm property={property} />}
       <PropertyMembers propertyId={property.id} members={property.members} candidates={candidates} canEdit={canEdit} />
       <PropertyChecklists propertyId={property.id} instances={instances} filter={filter} />
+      {canEdit && <PropertySchedules propertyId={property.id} schedules={schedules} />}
       {canEdit && <AssignForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} />}
       {canEdit && <DeleteProperty id={property.id} name={property.name} />}
     </div>
