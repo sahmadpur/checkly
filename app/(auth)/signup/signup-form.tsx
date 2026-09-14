@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/submit-button";
 export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [tz] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,6 +22,7 @@ export function SignupForm() {
         phone: String(fd.get("phone") ?? "") || undefined,
         password: String(fd.get("password")),
         orgName: String(fd.get("orgName")),
+        timezone: String(fd.get("timezone") || ""),
       });
       if (res && !res.ok) setError(res.error);
     });
@@ -40,6 +42,7 @@ export function SignupForm() {
       {field("email", "Email", { type: "email", required: true, autoComplete: "email" })}
       {field("phone", "Phone (optional, with country code)", { type: "tel", placeholder: "+1 415 555 2671", autoComplete: "tel" })}
       {field("password", "Password (8+ characters)", { type: "password", required: true, minLength: 8, autoComplete: "new-password" })}
+      <input type="hidden" name="timezone" value={tz} />
       <FormError message={error} />
       <SubmitButton pending={pending}>Create account</SubmitButton>
       <p className="text-center text-sm text-muted-foreground">

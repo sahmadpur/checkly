@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { assertMembership, listOrgsForUser, renameOrg } from "@/lib/services/org";
+import { assertMembership, listOrgsForUser, renameOrg, setTimezone } from "@/lib/services/org";
 import { makeMember, makeOrg, makeUser } from "@/tests/helpers/db";
 import { db } from "@/lib/db";
 
@@ -32,4 +32,13 @@ test("assertMembership passes for a member and throws FORBIDDEN for a non-member
   const row = await assertMembership(member.id, org.id);
   expect(row).toMatchObject({ orgId: org.id, userId: member.id, role: "WORKER" });
   await expect(assertMembership(outsider.id, org.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+});
+
+test("setTimezone: owner only, must be valid", async () => {
+  const u = await makeUser(); const mgr = await makeUser(); const org = await makeOrg();
+  await makeMember(org.id, u.id, "OWNER"); await makeMember(org.id, mgr.id, "MANAGER");
+  await expect(setTimezone({ userId: mgr.id, orgId: org.id }, "Europe/Madrid")).rejects.toMatchObject({ code: "FORBIDDEN" });
+  await expect(setTimezone({ userId: u.id, orgId: org.id }, "Nope/Nope")).rejects.toMatchObject({ code: "INVALID" });
+  await setTimezone({ userId: u.id, orgId: org.id }, "Europe/Madrid");
+  expect((await db.org.findUniqueOrThrow({ where: { id: org.id } })).timezone).toBe("Europe/Madrid");
 });

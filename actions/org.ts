@@ -15,6 +15,14 @@ export async function renameOrgAction(input: { name: string }) {
   });
 }
 
+export async function setTimezoneAction(input: { timezone: string }) {
+  return run(async () => {
+    const ctx = await requireUser();
+    await svc.setTimezone(ctx, z.string().min(1).max(64).parse(input.timezone));
+    revalidatePath("/settings");
+  });
+}
+
 export async function switchOrgAction(input: { orgId: string }) {
   return run(async () => {
     const { userId } = await requireSignedIn();

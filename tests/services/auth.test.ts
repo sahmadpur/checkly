@@ -25,6 +25,13 @@ describe("signup", () => {
     await expect(signup({ name: "A", email: "p@test.local", phone: "12", password: "secret123", orgName: "X" }))
       .rejects.toMatchObject({ code: "INVALID" });
   });
+
+  test("stores a valid timezone, falls back to UTC", async () => {
+    const a = await signup({ name: "A", email: "tz1@test.local", password: "secret123", orgName: "X", timezone: "Asia/Tokyo" });
+    expect((await db.org.findUniqueOrThrow({ where: { id: a.orgId } })).timezone).toBe("Asia/Tokyo");
+    const b = await signup({ name: "B", email: "tz2@test.local", password: "secret123", orgName: "Y", timezone: "Not/AZone" });
+    expect((await db.org.findUniqueOrThrow({ where: { id: b.orgId } })).timezone).toBe("UTC");
+  });
 });
 
 describe("authenticate", () => {
