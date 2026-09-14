@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
-import { Role } from "@prisma/client";
+import { InstanceStatus, ItemType, Role } from "@prisma/client";
 
 export async function resetDb() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "PasswordReset","Invite","PropertyMember","Property","OrgMember","User","Org" CASCADE'
+    'TRUNCATE "InstanceItem","ChecklistInstance","TemplateItem","ChecklistTemplate","PasswordReset","Invite","PropertyMember","Property","OrgMember","User","Org" CASCADE'
   );
 }
 
@@ -34,4 +34,40 @@ export async function makeMember(orgId: string, userId: string, role: Role) {
 
 export async function makeProperty(orgId: string, name = "Prop") {
   return db.property.create({ data: { orgId, name } });
+}
+
+export type ItemSeed = { type: ItemType; label: string; required?: boolean; options?: string[]; min?: number; max?: number };
+
+export const defaultItems: ItemSeed[] = [
+  { type: "CHECKBOX", label: "Beds made" },
+  { type: "TEXT", label: "Notes", required: false },
+  { type: "NUMBER", label: "Towels left", min: 0, max: 20 },
+  { type: "SELECT", label: "Condition", options: ["Good", "Fair", "Poor"] },
+  { type: "PHOTO", label: "Bathroom photo" },
+];
+
+export async function makeTemplate(orgId: string, items: ItemSeed[] = defaultItems, name = "Checkout clean") {
+  return db.checklistTemplate.create({
+    data: {
+      orgId, name,
+      items: { create: items.map((it, i) => ({ order: i, type: it.type, label: it.label, required: it.required ?? true, options: it.options ?? [], min: it.min ?? null, max: it.max ?? null })) },
+    },
+    include: { items: { orderBy: { order: "asc" } } },
+  });
+}
+
+export async function makeInstance(input: {
+  orgId: string; propertyId: string; assigneeId: string; assignedById: string;
+  items?: ItemSeed[]; dueAt?: Date; status?: InstanceStatus; templateName?: string;
+}) {
+  const items = input.items ?? defaultItems;
+  return db.checklistInstance.create({
+    data: {
+      orgId: input.orgId, propertyId: input.propertyId, assigneeId: input.assigneeId, assignedById: input.assignedById,
+      templateName: input.templateName ?? "Checkout clean", dueAt: input.dueAt ?? new Date(Date.now() + 3600_000),
+      status: input.status ?? "OPEN",
+      items: { create: items.map((it, i) => ({ order: i, type: it.type, label: it.label, required: it.required ?? true, options: it.options ?? [], min: it.min ?? null, max: it.max ?? null })) },
+    },
+    include: { items: { orderBy: { order: "asc" } } },
+  });
 }
