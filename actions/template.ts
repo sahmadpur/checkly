@@ -15,7 +15,10 @@ export async function createTemplateAction(input: z.input<typeof templateSchema>
     const ctx = await requireUser();
     return svc.createTemplate(ctx, toInput(templateSchema.parse(input)));
   });
-  if (result.ok) redirect(`/templates/${result.data.id}`);
+  if (result.ok) {
+    revalidatePath("/templates");
+    redirect(`/templates/${result.data.id}`);
+  }
   return result;
 }
 
