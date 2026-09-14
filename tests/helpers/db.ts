@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
-import { InstanceStatus, ItemType, Role } from "@prisma/client";
+import { InstanceStatus, ItemType, Role, ScheduleFreq } from "@prisma/client";
 
 export async function resetDb() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "InstanceItem","ChecklistInstance","TemplateItem","ChecklistTemplate","PasswordReset","Invite","PropertyMember","Property","OrgMember","User","Org" CASCADE'
+    'TRUNCATE "Notification","PushSubscription","ScheduleRun","ScheduleAssignee","Schedule","InstanceItem","ChecklistInstance","TemplateItem","ChecklistTemplate","PasswordReset","Invite","PropertyMember","Property","OrgMember","User","Org" CASCADE'
   );
 }
 
@@ -69,5 +69,22 @@ export async function makeInstance(input: {
       items: { create: items.map((it, i) => ({ order: i, type: it.type, label: it.label, required: it.required ?? true, options: it.options ?? [], min: it.min ?? null, max: it.max ?? null })) },
     },
     include: { items: { orderBy: { order: "asc" } } },
+  });
+}
+
+export async function makeSchedule(input: {
+  orgId: string; propertyId: string; templateId: string; createdById: string; assigneeIds: string[];
+  freq?: ScheduleFreq; daysOfWeek?: number[]; dayOfMonth?: number | null; dueTime?: string;
+  startsOn?: Date; endsOn?: Date | null; name?: string;
+}) {
+  return db.schedule.create({
+    data: {
+      orgId: input.orgId, propertyId: input.propertyId, templateId: input.templateId, createdById: input.createdById,
+      name: input.name ?? "Checkout clean", freq: input.freq ?? "DAILY", daysOfWeek: input.daysOfWeek ?? [],
+      dayOfMonth: input.dayOfMonth ?? null, dueTime: input.dueTime ?? "09:00",
+      startsOn: input.startsOn ?? new Date("2026-01-01T00:00:00Z"), endsOn: input.endsOn ?? null,
+      assignees: { create: input.assigneeIds.map((userId) => ({ userId })) },
+    },
+    include: { assignees: true },
   });
 }
