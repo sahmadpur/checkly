@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { db } from "@/lib/db";
-import { assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine } from "@/lib/services/instance";
+import { answerItem, assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine, review, submit } from "@/lib/services/instance";
+import { removeMember } from "@/lib/services/member";
 import { makeInstance, makeMember, makeOrg, makeProperty, makeTemplate, makeUser } from "@/tests/helpers/db";
 
 export async function setup() {
@@ -45,6 +46,12 @@ describe("assign", () => {
     await expect(assign(ctx(mgr.id), { templateId: tpl.id, propertyId: other.id, assigneeIds: [w1.id], dueAt: due })).rejects.toMatchObject({ code: "NOT_FOUND" });
     await db.checklistTemplate.update({ where: { id: tpl.id }, data: { archivedAt: new Date() } });
     await expect(assign(ctx(mgr.id), { templateId: tpl.id, propertyId: prop.id, assigneeIds: [w1.id], dueAt: due })).rejects.toMatchObject({ code: "INVALID" });
+  });
+
+  test("rejects more than 50 assignees", async () => {
+    const { mgr, prop, tpl, ctx, due } = await setup();
+    const ids = Array.from({ length: 51 }, (_, i) => `w${i}`);
+    await expect(assign(ctx(mgr.id), { templateId: tpl.id, propertyId: prop.id, assigneeIds: ids, dueAt: due })).rejects.toMatchObject({ code: "INVALID" });
   });
 });
 
@@ -96,4 +103,75 @@ test("isOverdue", () => {
   expect(isOverdue({ dueAt: new Date("2026-01-01T11:00:00Z"), status: "REJECTED" }, now)).toBe(true);
   expect(isOverdue({ dueAt: new Date("2026-01-01T11:00:00Z"), status: "SUBMITTED" }, now)).toBe(false);
   expect(isOverdue({ dueAt: new Date("2026-01-01T13:00:00Z"), status: "OPEN" }, now)).toBe(false);
+});
+
+describe("answer, submit, review", () => {
+  test("answer validation per type; only assignee; only OPEN/REJECTED", async () => {
+    const { org, mgr, w1, w2, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
+    const [cb, txt, num, sel, photo] = inst.items;
+    await answerItem(ctx(w1.id), inst.id, cb.id, { type: "CHECKBOX", checked: true });
+    await answerItem(ctx(w1.id), inst.id, num.id, { type: "NUMBER", number: 3 });
+    await expect(answerItem(ctx(w1.id), inst.id, num.id, { type: "NUMBER", number: 21 })).rejects.toMatchObject({ code: "INVALID" });
+    await expect(answerItem(ctx(w1.id), inst.id, sel.id, { type: "SELECT", choice: "Great" })).rejects.toMatchObject({ code: "INVALID" });
+    await answerItem(ctx(w1.id), inst.id, sel.id, { type: "SELECT", choice: "Good" });
+    await expect(answerItem(ctx(w1.id), inst.id, txt.id, { type: "NUMBER", number: 1 })).rejects.toMatchObject({ code: "INVALID" }); // type mismatch
+    await expect(answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: "org/x/evil.jpg", fileType: "image/jpeg" })).rejects.toMatchObject({ code: "INVALID" });
+    await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/jpeg" });
+    await expect(answerItem(ctx(w2.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(answerItem(ctx(mgr.id), inst.id, cb.id, { type: "CHECKBOX", checked: true })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    const d = await getInstance(ctx(w1.id), inst.id);
+    expect(d.items.map((i) => i.answeredAt !== null)).toEqual([true, false, true, true, true]);
+    await db.checklistInstance.update({ where: { id: inst.id }, data: { status: "SUBMITTED" } });
+    await expect(answerItem(ctx(w1.id), inst.id, cb.id, { type: "CHECKBOX", checked: false })).rejects.toMatchObject({ code: "INVALID" });
+  });
+
+  test("submit requires required items; lists missing labels", async () => {
+    const { org, mgr, w1, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
+    await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("Missing: Beds made, Towels left, Condition, Bathroom photo");
+    const [cb, , num, sel, photo] = inst.items;
+    await answerItem(ctx(w1.id), inst.id, cb.id, { type: "CHECKBOX", checked: true });
+    await answerItem(ctx(w1.id), inst.id, num.id, { type: "NUMBER", number: 3 });
+    await answerItem(ctx(w1.id), inst.id, sel.id, { type: "SELECT", choice: "Good" });
+    await answerItem(ctx(w1.id), inst.id, photo.id, { type: "PHOTO", fileKey: `org/${org.id}/instances/${inst.id}/${photo.id}.jpg`, fileType: "image/jpeg" });
+    await submit(ctx(w1.id), inst.id);
+    const d = await getInstance(ctx(w1.id), inst.id);
+    expect(d.status).toBe("SUBMITTED");
+    expect(d.submittedAt).not.toBeNull();
+    await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("SUBMITTED");
+  });
+
+  test("review: reject reopens with comment; resubmit; approve is terminal; permissions", async () => {
+    const { org, mgr, w1, w2, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, status: "SUBMITTED", items: [{ type: "CHECKBOX", label: "A" }] });
+    await db.instanceItem.update({ where: { id: inst.items[0].id }, data: { checked: true, answeredAt: new Date() } });
+    await expect(review(ctx(w1.id), inst.id, "APPROVED")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(review(ctx(mgr.id), inst.id, "REJECTED", "  ")).rejects.toMatchObject({ code: "INVALID" });
+    await review(ctx(mgr.id), inst.id, "REJECTED", "Redo the beds");
+    let d = await getInstance(ctx(w1.id), inst.id);
+    expect([d.status, d.reviewComment, d.reviewedByName, d.canFill]).toEqual(["REJECTED", "Redo the beds", "Mgr", true]);
+    await answerItem(ctx(w1.id), inst.id, inst.items[0].id, { type: "CHECKBOX", checked: true });
+    await submit(ctx(w1.id), inst.id);
+    await review(ctx(mgr.id), inst.id, "APPROVED");
+    d = await getInstance(ctx(mgr.id), inst.id);
+    expect([d.status, d.canReview]).toEqual(["APPROVED", false]);
+    await expect(review(ctx(mgr.id), inst.id, "REJECTED", "x")).rejects.toThrow("APPROVED");
+    const stranger = await makeUser();
+    await makeMember(org.id, stranger.id, "MANAGER");
+    const inst2 = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w2.id, assignedById: mgr.id, status: "SUBMITTED" });
+    await expect(review(ctx(stranger.id), inst2.id, "APPROVED")).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("removeMember", () => {
+  test("deletes OPEN and REJECTED instances, keeps SUBMITTED and APPROVED", async () => {
+    const { org, owner, mgr, w1, prop, ctx } = await setup();
+    for (const status of ["OPEN", "REJECTED", "SUBMITTED", "APPROVED"] as const) {
+      await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, status });
+    }
+    await removeMember(ctx(owner.id), w1.id);
+    const left = await db.checklistInstance.findMany({ where: { assigneeId: w1.id }, select: { status: true } });
+    expect(left.map((i) => i.status).sort()).toEqual(["APPROVED", "SUBMITTED"]);
+  });
 });
