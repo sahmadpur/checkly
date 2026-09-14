@@ -1,13 +1,18 @@
 import { notFound } from "next/navigation";
+import type { InstanceStatus } from "@prisma/client";
 import { requireUser, requireOrgRole, roleAtLeast } from "@/lib/auth/guard";
 import { getProperty } from "@/lib/services/property";
 import { listMembers } from "@/lib/services/member";
+import { listForProperty } from "@/lib/services/instance";
+import { listTemplates } from "@/lib/services/template";
 import { AppError } from "@/lib/errors";
 import { PropertyForm } from "../new/property-form";
 import { PropertyMembers } from "./members";
+import { PropertyChecklists } from "./checklists";
+import { AssignForm } from "./assign-form";
 import { DeleteProperty } from "./danger";
 
-export default async function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PropertyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ status?: string }> }) {
   const { id } = await params;
   const ctx = await requireUser();
   const role = await requireOrgRole(ctx, "WORKER");
@@ -23,6 +28,10 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   const candidates = canEdit
     ? (await listMembers(ctx)).filter((m) => !assigned.has(m.userId)).map(({ userId, name }) => ({ userId, name }))
     : [];
+  const { status } = await searchParams;
+  const filter = ["OPEN", "OVERDUE", "SUBMITTED", "APPROVED", "REJECTED"].includes(status ?? "") ? status! : "";
+  const instances = await listForProperty(ctx, id, filter ? { status: filter as InstanceStatus | "OVERDUE" } : {});
+  const templates = canEdit ? await listTemplates(ctx) : [];
 
   return (
     <div className="space-y-8">
@@ -32,6 +41,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
       </div>
       {canEdit && <PropertyForm property={property} />}
       <PropertyMembers propertyId={property.id} members={property.members} candidates={candidates} canEdit={canEdit} />
+      <PropertyChecklists propertyId={property.id} instances={instances} filter={filter} />
+      {canEdit && <AssignForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} />}
       {canEdit && <DeleteProperty id={property.id} name={property.name} />}
     </div>
   );
