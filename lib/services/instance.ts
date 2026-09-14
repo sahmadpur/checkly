@@ -4,6 +4,8 @@ import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/a
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { extForMime, isItemAnswered, mediaKey, mediaRule } from "@/lib/media";
 import { objectExists, presignUpload, storageConfigured } from "@/lib/storage";
+import { buildCopy } from "@/lib/notifications/copy";
+import { notify, recipientsForSubmitted } from "@/lib/services/notification";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
   (i.status === "OPEN" || i.status === "REJECTED") && i.dueAt.getTime() < now.getTime();
@@ -22,38 +24,50 @@ const toSummary = (r: SummaryRow) => ({
 });
 export type InstanceSummary = ReturnType<typeof toSummary>;
 
-export async function assign(ctx: Ctx, input: { templateId: string; propertyId: string; assigneeIds: string[]; dueAt: Date }) {
-  await requireOrgRole(ctx, "MANAGER");
-  await requirePropertyAccess(ctx, input.propertyId);
+export type CreateInstancesInput = { orgId: string; propertyId: string; templateId: string; assigneeIds: string[]; dueAt: Date; assignedById: string; scheduleId?: string | null };
+
+/** Creates one instance per assignee with frozen items and ASSIGNED notifications. No session; callers authorize. */
+export async function createInstances(input: CreateInstancesInput, tx?: Prisma.TransactionClient) {
   const assigneeIds = [...new Set(input.assigneeIds)];
   if (assigneeIds.length === 0) throw invalid("Pick at least one worker");
   if (assigneeIds.length > 50) throw invalid("Assign to at most 50 workers at a time");
-  const tpl = await db.checklistTemplate.findFirst({
-    where: { id: input.templateId, orgId: ctx.orgId },
-    include: { items: { orderBy: { order: "asc" } } },
-  });
+  const client = tx ?? db;
+  const tpl = await client.checklistTemplate.findFirst({ where: { id: input.templateId, orgId: input.orgId }, include: { items: { orderBy: { order: "asc" } } } });
   if (!tpl) throw notFound("Template not found");
   if (tpl.archivedAt) throw invalid("Template is archived");
   if (tpl.items.length === 0) throw invalid("Template has no items");
-  const members = await db.propertyMember.count({ where: { propertyId: input.propertyId, userId: { in: assigneeIds } } });
+  const [members, property, org] = await Promise.all([
+    client.propertyMember.count({ where: { propertyId: input.propertyId, userId: { in: assigneeIds } } }),
+    client.property.findFirst({ where: { id: input.propertyId, orgId: input.orgId }, select: { name: true } }),
+    client.org.findUniqueOrThrow({ where: { id: input.orgId }, select: { timezone: true } }),
+  ]);
+  if (!property) throw notFound("Property not found");
   if (members !== assigneeIds.length) throw invalid("Every assignee must be a member of this property");
-
   const frozen = tpl.items.map((i) => ({ order: i.order, type: i.type, label: i.label, required: i.required, options: i.options, min: i.min, max: i.max }));
-  const ids = await db.$transaction(async (tx) => {
-    const out: string[] = [];
+
+  const work = async (t: Prisma.TransactionClient) => {
+    const ids: string[] = [];
     for (const assigneeId of assigneeIds) {
-      const row = await tx.checklistInstance.create({
+      const row = await t.checklistInstance.create({
         data: {
-          orgId: ctx.orgId, propertyId: input.propertyId, templateId: tpl.id, templateName: tpl.name,
-          assigneeId, assignedById: ctx.userId, dueAt: input.dueAt, items: { create: frozen },
+          orgId: input.orgId, propertyId: input.propertyId, templateId: tpl.id, templateName: tpl.name, scheduleId: input.scheduleId ?? null,
+          assigneeId, assignedById: input.assignedById, dueAt: input.dueAt, items: { create: frozen },
         },
         select: { id: true },
       });
-      out.push(row.id);
+      ids.push(row.id);
+      const copy = buildCopy("ASSIGNED", { template: tpl.name, property: property.name, dueAt: input.dueAt, tz: org.timezone, instanceId: row.id });
+      await notify([{ orgId: input.orgId, userId: assigneeId, type: "ASSIGNED", instanceId: row.id, ...copy }], t);
     }
-    return out;
-  });
-  return { ids };
+    return { ids };
+  };
+  return tx ? work(tx) : db.$transaction(work);
+}
+
+export async function assign(ctx: Ctx, input: { templateId: string; propertyId: string; assigneeIds: string[]; dueAt: Date }) {
+  await requireOrgRole(ctx, "MANAGER");
+  await requirePropertyAccess(ctx, input.propertyId);
+  return createInstances({ orgId: ctx.orgId, ...input, assignedById: ctx.userId });
 }
 
 export async function listForProperty(ctx: Ctx, propertyId: string, opts: { status?: InstanceStatus | "OVERDUE" } = {}) {
@@ -221,6 +235,13 @@ export async function submit(ctx: Ctx, instanceId: string) {
     data: { status: "SUBMITTED", submittedAt: new Date() },
   });
   if (count === 0) throw invalid("Checklist was already submitted");
+
+  const full = await db.checklistInstance.findUniqueOrThrow({
+    where: { id: instanceId }, select: { propertyId: true, templateName: true, dueAt: true, assignee: { select: { name: true } }, property: { select: { name: true } }, org: { select: { timezone: true } } },
+  });
+  const recipients = await recipientsForSubmitted(ctx.orgId, full.propertyId, ctx.userId);
+  const copy = buildCopy("SUBMITTED", { template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, worker: full.assignee.name, instanceId });
+  await notify(recipients.map((userId) => ({ orgId: ctx.orgId, userId, type: "SUBMITTED" as const, instanceId, ...copy })));
 }
 
 export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" | "REJECTED", comment?: string) {
@@ -238,4 +259,10 @@ export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" 
     data: { status: decision, reviewedAt: new Date(), reviewedById: ctx.userId, reviewComment: text },
   });
   if (count === 0) throw invalid("Checklist is no longer awaiting review");
+
+  const full = await db.checklistInstance.findUniqueOrThrow({
+    where: { id: instanceId }, select: { assigneeId: true, templateName: true, dueAt: true, property: { select: { name: true } }, org: { select: { timezone: true } } },
+  });
+  const copy = buildCopy(decision, { template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, comment: text, instanceId });
+  await notify([{ orgId: ctx.orgId, userId: full.assigneeId, type: decision, instanceId, ...copy }]);
 }
