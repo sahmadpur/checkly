@@ -5,8 +5,9 @@ import { logoutAction } from "@/actions/auth";
 import { Role } from "@prisma/client";
 
 const items = (role: Role) => [
+  ...(role === "WORKER" ? [{ href: "/today", label: "Today" }] : []),
   { href: "/", label: "Properties" },
-  ...(role !== "WORKER" ? [{ href: "/team", label: "Team" }] : []),
+  ...(role !== "WORKER" ? [{ href: "/templates", label: "Templates" }, { href: "/team", label: "Team" }] : []),
   { href: "/settings", label: "Settings" },
 ];
 
