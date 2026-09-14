@@ -156,6 +156,16 @@ describe("answer, submit, review", () => {
     await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("SUBMITTED");
   });
 
+  test("a racing second submit loses", async () => {
+    const { org, mgr, w1, prop, ctx } = await setup();
+    const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, items: [{ type: "CHECKBOX", label: "A" }] });
+    await answerItem(ctx(w1.id), inst.id, inst.items[0].id, { type: "CHECKBOX", checked: true });
+    const results = await Promise.allSettled([submit(ctx(w1.id), inst.id), submit(ctx(w1.id), inst.id)]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const loser = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
+    expect(loser.reason.message).toMatch(/already submitted|is SUBMITTED/);
+  });
+
   test("review: reject reopens with comment; resubmit; approve is terminal; permissions", async () => {
     const { org, mgr, w1, w2, prop, ctx } = await setup();
     const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, status: "SUBMITTED", items: [{ type: "CHECKBOX", label: "A" }] });

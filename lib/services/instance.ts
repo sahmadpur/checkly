@@ -167,7 +167,7 @@ export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, v
   if (!item) throw notFound("Item not found");
   if (item.type !== value.type) throw invalid(`"${item.label}" expects a ${item.type.toLowerCase()} answer`);
 
-  const data: Prisma.InstanceItemUpdateInput = { answeredAt: new Date() };
+  const data: Prisma.InstanceItemUpdateManyMutationInput = { answeredAt: new Date() };
   switch (value.type) {
     case "CHECKBOX": data.checked = value.checked; break;
     case "TEXT": data.text = value.text.slice(0, 2000); break;
@@ -187,7 +187,9 @@ export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, v
       data.fileKey = value.fileKey; data.fileType = value.fileType; break;
     }
   }
-  await db.instanceItem.update({ where: { id: itemId }, data });
+  // Conditional on the instance still being fillable, so a concurrent submit cannot be written around.
+  const { count } = await db.instanceItem.updateMany({ where: { id: itemId, instance: { status: { in: ["OPEN", "REJECTED"] } } }, data });
+  if (count === 0) throw invalid("Checklist can no longer be edited");
 }
 
 export async function submit(ctx: Ctx, instanceId: string) {
@@ -196,7 +198,11 @@ export async function submit(ctx: Ctx, instanceId: string) {
   const items = await db.instanceItem.findMany({ where: { instanceId }, orderBy: { order: "asc" } });
   const missing = items.filter((i) => i.required && !isAnswered(i)).map((i) => i.label);
   if (missing.length) throw invalid(`Missing: ${missing.join(", ")}`);
-  await db.checklistInstance.update({ where: { id: instanceId }, data: { status: "SUBMITTED", submittedAt: new Date() } });
+  const { count } = await db.checklistInstance.updateMany({
+    where: { id: instanceId, status: { in: ["OPEN", "REJECTED"] } },
+    data: { status: "SUBMITTED", submittedAt: new Date() },
+  });
+  if (count === 0) throw invalid("Checklist was already submitted");
 }
 
 export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" | "REJECTED", comment?: string) {
@@ -209,8 +215,9 @@ export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" 
   if (inst.status !== "SUBMITTED") throw invalid(`Checklist is ${inst.status}; only submitted checklists can be reviewed`);
   const text = comment?.trim() || null;
   if (decision === "REJECTED" && !text) throw invalid("A comment is required when rejecting");
-  await db.checklistInstance.update({
-    where: { id: instanceId },
+  const { count } = await db.checklistInstance.updateMany({
+    where: { id: instanceId, status: "SUBMITTED" },
     data: { status: decision, reviewedAt: new Date(), reviewedById: ctx.userId, reviewComment: text },
   });
+  if (count === 0) throw invalid("Checklist is no longer awaiting review");
 }
