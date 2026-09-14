@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { db } from "@/lib/db";
-import { answerItem, assign, getInstance, instanceCounts, isOverdue, listForProperty, listMine, requestUpload, review, submit } from "@/lib/services/instance";
+import { answerItem, assign, createInstances, getInstance, instanceCounts, isOverdue, listForProperty, listMine, requestUpload, review, submit } from "@/lib/services/instance";
 import { removeMember } from "@/lib/services/member";
 import { mediaKey } from "@/lib/media";
 import { putObject, storageConfigured } from "@/lib/storage";
@@ -246,5 +246,42 @@ describe("removeMember", () => {
     await removeMember(ctx(owner.id), w1.id);
     const left = await db.checklistInstance.findMany({ where: { assigneeId: w1.id }, select: { status: true } });
     expect(left.map((i) => i.status).sort()).toEqual(["APPROVED", "SUBMITTED"]);
+  });
+});
+
+describe("notifications from instance events", () => {
+  test("assign creates ASSIGNED for each assignee; submit notifies owner + property managers; review notifies the worker", async () => {
+    const { org, owner, mgr, w1, w2, prop, tpl, ctx, due } = await setup();
+    const { ids } = await assign(ctx(mgr.id), { templateId: tpl.id, propertyId: prop.id, assigneeIds: [w1.id, w2.id], dueAt: due });
+    const assigned = await db.notification.findMany({ where: { type: "ASSIGNED" }, orderBy: { userId: "asc" } });
+    expect(assigned.map((n) => n.userId).sort()).toEqual([w1.id, w2.id].sort());
+    expect(assigned[0].url).toMatch(/^\/checklists\//);
+    expect(assigned[0].title).toBe("New checklist: Checkout clean at Villa");
+
+    const inst = await getInstance(ctx(w1.id), ids[0]);
+    for (const it of inst.items.filter((i) => i.required)) {
+      if (it.type === "CHECKBOX") await answerItem(ctx(w1.id), inst.id, it.id, { type: "CHECKBOX", checked: true });
+      if (it.type === "NUMBER") await answerItem(ctx(w1.id), inst.id, it.id, { type: "NUMBER", number: 1 });
+      if (it.type === "SELECT") await answerItem(ctx(w1.id), inst.id, it.id, { type: "SELECT", choice: "Good" });
+      if (it.type === "PHOTO") { const key = mediaKey(org.id, inst.id, it.id, "jpg"); await seedMedia(key); await answerItem(ctx(w1.id), inst.id, it.id, { type: "PHOTO", fileKey: key, fileType: "image/jpeg" }); }
+    }
+    await submit(ctx(w1.id), inst.id);
+    const submitted = await db.notification.findMany({ where: { type: "SUBMITTED" } });
+    expect(submitted.map((n) => n.userId).sort()).toEqual([mgr.id, owner.id].sort());
+    expect(submitted[0].title).toBe("W1 submitted Checkout clean at Villa");
+
+    await review(ctx(mgr.id), inst.id, "REJECTED", "Redo");
+    expect(await db.notification.findFirst({ where: { type: "REJECTED", userId: w1.id } })).toMatchObject({ body: "Redo" });
+    await submit(ctx(w1.id), inst.id);
+    await review(ctx(mgr.id), inst.id, "APPROVED");
+    expect(await db.notification.count({ where: { type: "APPROVED", userId: w1.id } })).toBe(1);
+  });
+
+  test("createInstances (no ctx) validates template and membership and tags scheduleId", async () => {
+    const { org, mgr, w1, outsider, prop, tpl, due } = await setup();
+    await expect(createInstances({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, assigneeIds: [outsider.id], dueAt: due, assignedById: mgr.id })).rejects.toMatchObject({ code: "INVALID" });
+    const s = await db.schedule.create({ data: { orgId: org.id, propertyId: prop.id, templateId: tpl.id, createdById: mgr.id, name: "s", freq: "DAILY", dueTime: "09:00", startsOn: new Date() } });
+    const { ids } = await createInstances({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, assigneeIds: [w1.id], dueAt: due, assignedById: mgr.id, scheduleId: s.id });
+    expect((await db.checklistInstance.findUniqueOrThrow({ where: { id: ids[0] } })).scheduleId).toBe(s.id);
   });
 });
