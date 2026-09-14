@@ -191,8 +191,8 @@ export async function runTick(now = new Date()): Promise<TickResult> {
       { timeout: 10 * 60_000, maxWait: 5_000 }
     );
   } catch (e) {
-    // Commit or timeout failure: the lock (and any work inside the transaction) rolled back with it,
-    // but the caller still gets a well-formed result instead of a thrown error.
+    // Commit or timeout failure of the lock transaction. The steps ran on `db` (separate connections),
+    // so their work is already committed; only the lock is gone. Return the accumulated counts.
     result.errors++;
     console.error("tick: transaction failed", e);
   }
