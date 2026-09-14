@@ -88,6 +88,14 @@ describe("generation", () => {
     const instances = await db.checklistInstance.findMany({ where: { scheduleId: s.id } });
     expect(instances).toHaveLength(1);
     expect(instances[0].assigneeId).toBe(w.id);
+
+    // Every assignee gone: one warning for the whole schedule, not one per backlog day.
+    const orphan = await makeSchedule({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, createdById: mgr.id, assigneeIds: [w2.id], startsOn: new Date("2026-03-08T00:00:00Z") });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const orphanFull = await db.schedule.findUniqueOrThrow({ where: { id: orphan.id }, include: { assignees: true, template: { select: { archivedAt: true } }, org: { select: { timezone: true } }, runs: { orderBy: { occurrenceDate: "desc" }, take: 1 } } });
+    expect(await generateForSchedule(orphanFull, now)).toBe(0);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
 

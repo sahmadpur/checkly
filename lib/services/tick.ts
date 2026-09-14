@@ -28,6 +28,10 @@ export async function generateForSchedule(s: ScheduleWithRelations, now = new Da
   // cleanup in member/property removal); only generate for those still on the property.
   const members = await db.propertyMember.findMany({ where: { propertyId: s.propertyId, userId: { in: s.assignees.map((a) => a.userId) } }, select: { userId: true } });
   const assigneeIds = members.map((m) => m.userId);
+  if (assigneeIds.length === 0) {
+    console.warn(`tick: schedule ${s.id} skipped: no assignees are still property members`);
+    return 0;
+  }
   const lastRun = s.runs[0] ? addDaysLocal(fromUtcMidnight(s.runs[0].occurrenceDate), 1) : startsOn;
   const cap = addDaysLocal(today, -(CATCHUP_DAYS - 1));
   const earliestMissing = toUtcMidnight(lastRun) > toUtcMidnight(startsOn) ? lastRun : startsOn;
@@ -40,10 +44,6 @@ export async function generateForSchedule(s: ScheduleWithRelations, now = new Da
   for (const d of occurrencesBetween(rule, from, today)) {
     const occurrenceDate = toUtcMidnight(d);
     const dueAt = dueAtFor(d, s.dueTime, tz);
-    if (assigneeIds.length === 0) {
-      console.warn(`tick: schedule ${s.id} occurrence ${fmtDate(d)} skipped: no assignees are still property members`);
-      continue;
-    }
     await db.$transaction(async (tx) => {
       const run = await tx.scheduleRun.createMany({ data: [{ scheduleId: s.id, occurrenceDate }], skipDuplicates: true });
       if (run.count === 0) return;
@@ -165,8 +165,11 @@ export async function runTick(now = new Date()): Promise<TickResult> {
   const result = { generated: 0, reminders: 0, overdue: 0, notified: 0, errors: 0, ms: 0 };
   let skipped = false;
   try {
-    // pg_try_advisory_xact_lock is released at commit, so the lock lives exactly as long as this transaction.
-    // The steps themselves use `db` (separate connections) so the long-running work is not inside the lock's transaction.
+    // The transaction exists only to hold pg_try_advisory_xact_lock, which Postgres releases
+    // when it ends. All the work below runs on `db` (separate connections), not on `tx`, so a
+    // second tick is locked out for as long as this transaction is open — but if it were to hit
+    // the 10-minute timeout the lock would be released while the work kept running. Theoretical
+    // at current volumes; a session-level lock with an explicit unlock is the fix if it happens.
     await db.$transaction(
       async (tx) => {
         const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(${LOCK_KEY}) AS locked`;
