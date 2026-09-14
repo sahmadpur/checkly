@@ -51,6 +51,10 @@ export async function generateForSchedule(s: ScheduleWithRelations, now = new Da
         { orgId: s.orgId, propertyId: s.propertyId, templateId: s.templateId, assigneeIds, dueAt, assignedById: s.createdById, scheduleId: s.id },
         tx
       );
+      // Catch-up backfill: occurrences whose due time already passed get the ASSIGNED
+      // notification only — stamping them here keeps sendReminders/markOverdue from
+      // firing a burst of DUE_SOON/OVERDUE for history nobody can act on.
+      await tx.checklistInstance.updateMany({ where: { id: { in: ids }, dueAt: { lt: now } }, data: { overdueNotifiedAt: now, remindedAt: now } });
       await tx.scheduleRun.update({ where: { scheduleId_occurrenceDate: { scheduleId: s.id, occurrenceDate } }, data: { instanceIds: ids } });
       created += ids.length;
     });

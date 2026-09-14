@@ -58,6 +58,22 @@ describe("generation", () => {
     expect(await generateForSchedule(await load(ok.id), new Date("2026-03-11T12:00:00Z"))).toBe(0);
   });
 
+  test("backfilled past occurrences notify ASSIGNED only; today's still gets a reminder", async () => {
+    const { org, mgr, w, prop, tpl } = await setup();
+    const now = new Date("2026-03-10T08:00:00Z"); // before today's 09:00 due time
+    const s = await makeSchedule({ orgId: org.id, propertyId: prop.id, templateId: tpl.id, createdById: mgr.id, assigneeIds: [w.id], freq: "DAILY", dueTime: "09:00", startsOn: new Date("2026-03-08T00:00:00Z") });
+    const full = await db.schedule.findUniqueOrThrow({ where: { id: s.id }, include: { assignees: true, template: { select: { archivedAt: true } }, org: { select: { timezone: true } }, runs: { orderBy: { occurrenceDate: "desc" }, take: 1 } } });
+    expect(await generateForSchedule(full, now)).toBe(3); // Mar 8, 9, 10
+    expect(await db.notification.count({ where: { type: "ASSIGNED", userId: w.id } })).toBe(3);
+    // Mar 8 and 9 are already past due: pre-stamped, so no OVERDUE storm.
+    expect((await markOverdue(now)).count).toBe(0);
+    expect(await db.notification.count({ where: { type: "OVERDUE" } })).toBe(0);
+    // Today's occurrence is still in the future and inside the reminder window.
+    expect((await sendReminders(now)).count).toBe(1);
+    const reminded = await db.checklistInstance.findFirstOrThrow({ where: { scheduleId: s.id }, orderBy: { dueAt: "desc" } });
+    expect(reminded.dueAt.toISOString()).toBe("2026-03-10T09:00:00.000Z");
+  });
+
   test("assignee removed from the property directly is filtered out; the remaining assignee still gets an instance", async () => {
     const { org, mgr, w, prop, tpl } = await setup();
     const w2 = await makeUser({ name: "W2", email: "w2@test.local" });
