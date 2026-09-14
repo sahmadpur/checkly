@@ -1,5 +1,5 @@
 import type { InstanceItemRow } from "@/lib/services/instance";
-import { isAnswered } from "@/lib/services/instance";
+import { isItemAnswered } from "@/lib/media";
 
 export function AnswerView({ items, mediaUrls }: { items: InstanceItemRow[]; mediaUrls: Record<string, string> }) {
   return (
@@ -8,7 +8,7 @@ export function AnswerView({ items, mediaUrls }: { items: InstanceItemRow[]; med
         <li key={i.id} className="rounded-md border p-3 text-sm">
           <div className="flex items-center justify-between">
             <span className="font-medium">{i.label}{i.required && <span className="text-destructive"> *</span>}</span>
-            {!isAnswered(i) && <span className="text-xs text-muted-foreground">Not answered</span>}
+            {!isItemAnswered(i) && <span className="text-xs text-muted-foreground">Not answered</span>}
           </div>
           <div className="mt-1">
             {i.type === "CHECKBOX" && (i.checked ? "✓ Done" : "")}
