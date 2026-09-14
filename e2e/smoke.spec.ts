@@ -50,6 +50,11 @@ test("owner signs up, creates property, invites worker; worker sees only that pr
   await expect(worker.getByRole("heading", { name: "Today" })).toBeVisible();
   await expect(worker.getByRole("link", { name: "Team" })).toHaveCount(0);
 
+  // The properties list is role-scoped, not hidden: the worker sees only their property.
+  await worker.goto("/");
+  await expect(worker.getByRole("link", { name: /Villa One/ })).toBeVisible();
+  await expect(worker.getByRole("link", { name: /Villa Two/ })).toHaveCount(0);
+
   // Property access is scoped to assigned properties only.
   await worker.goto(villaOneUrl);
   await expect(worker.getByRole("heading", { name: "Villa One" })).toBeVisible();

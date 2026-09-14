@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { requireUser, requireOrgRole, roleAtLeast } from "@/lib/auth/guard";
 import { listProperties } from "@/lib/services/property";
 import { instanceCounts } from "@/lib/services/instance";
@@ -9,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default async function DashboardPage() {
   const ctx = await requireUser();
   const role = await requireOrgRole(ctx, "WORKER");
-  if (role === "WORKER") redirect("/today");
   const properties = await listProperties(ctx);
   const counts = await instanceCounts(ctx, properties.map((p) => p.id));
   return (

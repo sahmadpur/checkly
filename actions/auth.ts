@@ -7,6 +7,7 @@ import { AuthError } from "next-auth";
 import { run } from "@/lib/actions";
 import { signIn, signOut, unstable_update } from "@/lib/auth/config";
 import { requireSignedIn } from "@/lib/auth/guard";
+import { landingForUser } from "@/lib/auth/landing";
 import { throttle, safeNext } from "@/lib/request";
 import { invalid } from "@/lib/errors";
 import * as svc from "@/lib/services/auth";
@@ -33,8 +34,10 @@ export async function loginAction(input: z.infer<typeof loginSchema>, next?: str
       if (e instanceof AuthError) throw invalid("Incorrect identifier or password");
       throw e;
     }
+    const user = await svc.findUserByIdentifier(data.identifier);
+    return user ? await landingForUser(user.id) : "/";
   });
-  if (result.ok) redirect(safeNext(next));
+  if (result.ok) redirect(next ? safeNext(next) : result.data);
   return result;
 }
 
