@@ -70,6 +70,15 @@ describe("lists and access", () => {
     await expect(listForProperty(ctx(stranger.id), prop.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
+  test("workers see only their own instances in listForProperty and instanceCounts", async () => {
+    const { org, mgr, w1, w2, prop, ctx } = await setup();
+    const mine = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, dueAt: new Date(Date.now() - 1000) });
+    await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w2.id, assignedById: mgr.id });
+    expect((await listForProperty(ctx(w1.id), prop.id)).map((i) => i.id)).toEqual([mine.id]);
+    expect(await instanceCounts(ctx(w1.id), [prop.id])).toEqual({ [prop.id]: { open: 1, overdue: 1 } });
+    expect(await instanceCounts(ctx(mgr.id), [prop.id])).toEqual({ [prop.id]: { open: 2, overdue: 1 } });
+  });
+
   test("getInstance: assignee and managers with access; others NOT_FOUND; canFill/canReview flags", async () => {
     const { org, mgr, w1, w2, prop, ctx } = await setup();
     const a = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });

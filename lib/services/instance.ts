@@ -56,8 +56,9 @@ export async function assign(ctx: Ctx, input: { templateId: string; propertyId: 
 }
 
 export async function listForProperty(ctx: Ctx, propertyId: string, opts: { status?: InstanceStatus | "OVERDUE" } = {}) {
-  await requirePropertyAccess(ctx, propertyId);
-  const where: Prisma.ChecklistInstanceWhereInput = { orgId: ctx.orgId, propertyId };
+  const { role } = await requirePropertyAccess(ctx, propertyId);
+  // Workers only ever see their own work; managers and owners see the whole property.
+  const where: Prisma.ChecklistInstanceWhereInput = { orgId: ctx.orgId, propertyId, ...(role === "WORKER" ? { assigneeId: ctx.userId } : {}) };
   if (opts.status === "OVERDUE") {
     where.status = { in: ["OPEN", "REJECTED"] };
     where.dueAt = { lt: new Date() };
@@ -110,9 +111,12 @@ export type InstanceDetail = Awaited<ReturnType<typeof getInstance>>;
 export type InstanceItemRow = InstanceDetail["items"][number];
 
 export async function instanceCounts(ctx: Ctx, propertyIds: string[]) {
-  await requireOrgRole(ctx, "WORKER");
+  const role = await requireOrgRole(ctx, "WORKER");
   const rows = await db.checklistInstance.findMany({
-    where: { orgId: ctx.orgId, propertyId: { in: propertyIds }, status: { in: ["OPEN", "REJECTED"] } },
+    where: {
+      orgId: ctx.orgId, propertyId: { in: propertyIds }, status: { in: ["OPEN", "REJECTED"] },
+      ...(role === "WORKER" ? { assigneeId: ctx.userId } : {}),
+    },
     select: { propertyId: true, dueAt: true, status: true },
   });
   const out: Record<string, { open: number; overdue: number }> = {};

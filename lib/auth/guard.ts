@@ -31,7 +31,7 @@ export async function requirePropertyAccess(ctx: Ctx, propertyId: string) {
     select: { id: true, orgId: true },
   });
   if (!property) throw notFound("Property not found");
-  return property;
+  return { ...property, role };
 }
 
 /** Reads the session. Redirects to /login when signed out. Throws FORBIDDEN when the user has no active org. */
