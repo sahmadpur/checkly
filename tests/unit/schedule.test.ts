@@ -40,6 +40,14 @@ test("dueAtFor converts org-local time to UTC, including DST change (Europe/Madr
   expect(dueAtFor({ y: 2026, m: 3, d: 29 }, "09:00", "Europe/Madrid").toISOString()).toBe("2026-03-29T07:00:00.000Z");
 });
 
+test("dueAtFor resolves DST fall-back overlap to the earlier instant (America/New_York, 2026-11-01)", () => {
+  expect(dueAtFor({ y: 2026, m: 11, d: 1 }, "01:30", "America/New_York").toISOString()).toBe("2026-11-01T05:30:00.000Z");
+});
+
+test("dueAtFor resolves DST spring-forward gap to the instant after the gap (Europe/Madrid, 2026-03-29 02:30 does not exist -> 03:30 CEST)", () => {
+  expect(dueAtFor({ y: 2026, m: 3, d: 29 }, "02:30", "Europe/Madrid").toISOString()).toBe("2026-03-29T01:30:00.000Z");
+});
+
 test("nextOccurrence finds the next dueAt after from", () => {
   const from = new Date("2026-03-02T10:00:00Z"); // Monday 10:00 UTC, after 09:00
   expect(nextOccurrence(weekly, "UTC", from)?.toISOString()).toBe("2026-03-04T09:00:00.000Z");
