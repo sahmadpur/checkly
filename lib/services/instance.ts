@@ -104,6 +104,7 @@ export async function getInstance(ctx: Ctx, id: string) {
       property: { select: { name: true, members: { where: { userId: ctx.userId }, select: { userId: true } } } },
       assignee: { select: { name: true } },
       reviewedBy: { select: { name: true } },
+      schedule: { select: { name: true } },
       items: { orderBy: { order: "asc" } },
     },
   });
@@ -114,6 +115,7 @@ export async function getInstance(ctx: Ctx, id: string) {
   return {
     ...toSummary({ ...r, property: { name: r.property.name } }),
     reviewComment: r.reviewComment, reviewedAt: r.reviewedAt, reviewedByName: r.reviewedBy?.name ?? null,
+    scheduleName: r.schedule?.name ?? null,
     canFill: isAssignee && (r.status === "OPEN" || r.status === "REJECTED"),
     canReview: managerAccess && r.status === "SUBMITTED",
     items: r.items.map((i) => ({

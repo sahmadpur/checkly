@@ -40,6 +40,7 @@ describe("assign", () => {
     expect(inst.items.map((i) => [i.order, i.type, i.label, i.required])).toEqual(tpl.items.map((i) => [i.order, i.type, i.label, i.required]));
     expect(inst.templateName).toBe("Checkout clean");
     expect(inst.status).toBe("OPEN");
+    expect(inst.scheduleName).toBeNull();
     // editing the template afterwards does not touch the instance
     await db.templateItem.deleteMany({ where: { templateId: tpl.id } });
     expect((await getInstance(ctx(w1.id), ids[0])).items).toHaveLength(5);
