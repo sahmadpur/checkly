@@ -5,6 +5,7 @@ import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, isExpired, RESET_TTL_MS } from "@/lib/auth/token";
 import { sendMail } from "@/lib/email";
 import { conflict, invalid, notFound } from "@/lib/errors";
+import { isValidTimezone } from "@/lib/timezones";
 
 const isUniqueViolation = (e: unknown) =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
@@ -22,16 +23,17 @@ export async function findUserByIdentifier(identifier: string) {
   return db.user.findUnique({ where });
 }
 
-export async function signup(input: { name: string; email: string; phone?: string; password: string; orgName: string }) {
+export async function signup(input: { name: string; email: string; phone?: string; password: string; orgName: string; timezone?: string }) {
   const phone = input.phone?.trim() ? normalizePhone(input.phone) : null;
   if (input.phone?.trim() && !phone) throw invalid("Phone number is not valid");
+  const timezone = input.timezone && isValidTimezone(input.timezone) ? input.timezone : "UTC";
   const passwordHash = await hashPassword(input.password);
   try {
     return await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: { name: input.name, email: input.email.trim().toLowerCase(), phone, passwordHash },
       });
-      const org = await tx.org.create({ data: { name: input.orgName } });
+      const org = await tx.org.create({ data: { name: input.orgName, timezone } });
       await tx.orgMember.create({ data: { orgId: org.id, userId: user.id, role: "OWNER" } });
       return { userId: user.id, orgId: org.id };
     });
