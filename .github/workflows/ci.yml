@@ -48,22 +48,23 @@ jobs:
             -e MINIO_API_CORS_ALLOW_ORIGIN='*' \
             minio/minio server /data
           timeout 30 sh -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 1; done'
+      # Every key already exists in .env.example, so fill them in place: appending
+      # instead would leave two lines per key (last one wins, but it is a trap).
+      # The S3_* values in .env.example already match the MinIO container above.
       - run: |
           cp .env.example .env
+          keys=$(pnpm --silent push:keys)
+          vapid_public=$(printf '%s\n' "$keys" | sed -n 's/^VAPID_PUBLIC_KEY=//p')
+          vapid_private=$(printf '%s\n' "$keys" | sed -n 's/^VAPID_PRIVATE_KEY=//p')
+          [ -n "$vapid_public" ] && [ -n "$vapid_private" ] || { echo "push:keys produced no VAPID pair"; exit 1; }
           sed -i "s#^DATABASE_URL=.*#DATABASE_URL=postgresql://checkly:checkly@localhost:5432/checkly_test#" .env
           sed -i "s#^DATABASE_URL_TEST=.*#DATABASE_URL_TEST=postgresql://checkly:checkly@localhost:5432/checkly_test#" .env
           sed -i "s#^AUTH_SECRET=.*#AUTH_SECRET=$(openssl rand -hex 32)#" .env
-          cat >> .env <<EOF
-          S3_ENDPOINT=http://localhost:9000
-          S3_REGION=us-east-1
-          S3_BUCKET=checkly
-          S3_ACCESS_KEY=minio
-          S3_SECRET_KEY=minio12345
-          S3_FORCE_PATH_STYLE=true
-          CRON_SECRET=ci-secret
-          EOF
-          pnpm --silent push:keys >> .env
-          echo "VAPID_SUBJECT=mailto:ci@example.com" >> .env
+          sed -i "s#^CRON_SECRET=.*#CRON_SECRET=ci-secret#" .env
+          sed -i "s#^VAPID_PUBLIC_KEY=.*#VAPID_PUBLIC_KEY=$vapid_public#" .env
+          sed -i "s#^VAPID_PRIVATE_KEY=.*#VAPID_PRIVATE_KEY=$vapid_private#" .env
+          sed -i "s#^VAPID_SUBJECT=.*#VAPID_SUBJECT=mailto:ci@example.com#" .env
+          sed -i "s#^NEXT_PUBLIC_VAPID_PUBLIC_KEY=.*#NEXT_PUBLIC_VAPID_PUBLIC_KEY=$vapid_public#" .env
       - run: pnpm db:push:test
       - run: pnpm storage:init
       - run: pnpm lint
