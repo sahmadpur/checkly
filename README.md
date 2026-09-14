@@ -2,6 +2,16 @@
 
 Property checklists for your team. Managers create properties and invite staff on the web; workers use the installable PWA on their phones.
 
+## Checklists
+
+Managers build reusable checklist templates (checkbox, text, number, choice,
+photo, and video items, each optionally required) and assign them to workers
+on a property with a due date. Workers fill theirs in from the **Today**
+page on their phone — answers and media save as they go — and submit when
+every required item is done. A manager reviews a submitted checklist and
+either approves it or rejects it with a comment, which sends it back to the
+worker as "Needs rework" for a resubmission.
+
 ## Development
 
 ```bash
@@ -37,8 +47,12 @@ to the same host.
 
 ```bash
 pnpm test        # vitest: unit + services against checkly_test
-pnpm e2e         # playwright smoke test (spins up its own dev server on :3100)
+pnpm e2e         # playwright: smoke + checklist flow (spins up its own dev server on :3100)
 ```
+
+`pnpm e2e` needs MinIO running (`docker compose up -d`) and its bucket created
+(`pnpm storage:init`) — the checklist flow test uploads a photo and skips
+itself if `S3_ENDPOINT` isn't set.
 
 ## Deploy
 

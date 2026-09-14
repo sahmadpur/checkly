@@ -22,12 +22,14 @@ test("owner signs up, creates property, invites worker; worker sees only that pr
   await page.fill("#name", "Villa One");
   await page.click("button[type=submit]");
   await expect(page.getByRole("heading", { name: "Villa One" })).toBeVisible();
+  const villaOneUrl = page.url();
 
   await page.goto("/");
   await page.getByRole("link", { name: "New property" }).click();
   await page.fill("#name", "Villa Two");
   await page.click("button[type=submit]");
   await expect(page.getByRole("heading", { name: "Villa Two" })).toBeVisible();
+  const villaTwoUrl = page.url();
 
   await page.goto("/team");
   await page.fill("#email", workerEmail);
@@ -44,9 +46,14 @@ test("owner signs up, creates property, invites worker; worker sees only that pr
   await worker.fill("#name", "Worker");
   await worker.fill("#password", "password123");
   await worker.click("button[type=submit]");
-  await expect(worker.getByRole("heading", { name: "Properties" })).toBeVisible();
-  await expect(worker.getByText("Villa One")).toBeVisible();
-  await expect(worker.getByText("Villa Two")).toHaveCount(0);
+  // Workers land on Today, not the Properties dashboard.
+  await expect(worker.getByRole("heading", { name: "Today" })).toBeVisible();
   await expect(worker.getByRole("link", { name: "Team" })).toHaveCount(0);
+
+  // Property access is scoped to assigned properties only.
+  await worker.goto(villaOneUrl);
+  await expect(worker.getByRole("heading", { name: "Villa One" })).toBeVisible();
+  await worker.goto(villaTwoUrl);
+  await expect(worker.getByRole("heading", { name: "Villa Two" })).toHaveCount(0);
   await ctx.close();
 });
