@@ -1,4 +1,4 @@
-import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CreateBucketCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutBucketCorsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const env = () => ({
@@ -40,12 +40,41 @@ export async function deleteObject(key: string) {
   await internalClient().send(new DeleteObjectCommand({ Bucket: env().bucket, Key: key }));
 }
 
+const errNames = (e: unknown) => {
+  const x = e as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
+  return { names: [x?.name, x?.Code], status: x?.$metadata?.httpStatusCode };
+};
+
+const isMissingBucket = (e: unknown) => {
+  const { names, status } = errNames(e);
+  return status === 404 || names.includes("NotFound") || names.includes("NoSuchBucket");
+};
+
 export async function ensureBucket() {
   const c = internalClient();
   const Bucket = env().bucket;
   try {
     await c.send(new HeadBucketCommand({ Bucket }));
-  } catch {
+  } catch (e) {
+    if (!isMissingBucket(e)) throw e;
     await c.send(new CreateBucketCommand({ Bucket }));
+  }
+  try {
+    await c.send(new PutBucketCorsCommand({
+      Bucket,
+      CORSConfiguration: {
+        CORSRules: [{
+          AllowedOrigins: [process.env.APP_URL ?? "*"],
+          AllowedMethods: ["PUT", "GET"],
+          AllowedHeaders: ["*"],
+          ExposeHeaders: ["ETag"],
+          MaxAgeSeconds: 3000,
+        }],
+      },
+    }));
+  } catch (e) {
+    if (!errNames(e).names.includes("NotImplemented")) throw e;
+    // MinIO has no per-bucket CORS API; it is configured process-wide with MINIO_API_CORS_ALLOW_ORIGIN.
+    console.warn("Storage rejected the bucket CORS rule (NotImplemented); set MINIO_API_CORS_ALLOW_ORIGIN instead.");
   }
 }

@@ -43,6 +43,11 @@ but the browser needs `http://localhost:9000`); when testing from a phone on
 your LAN, set `S3_PUBLIC_ENDPOINT=http://<your-lan-ip>:9000` and `APP_URL`
 to the same host.
 
+Those direct browser uploads need CORS on the bucket. `pnpm storage:init`
+applies a rule allowing `PUT`/`GET` from `APP_URL`; MinIO has no per-bucket
+CORS API and answers `NotImplemented`, so the script warns and dev relies on
+`MINIO_API_CORS_ALLOW_ORIGIN` (set in `docker-compose.yml` and CI) instead.
+
 ## Tests
 
 ```bash
