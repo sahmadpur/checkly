@@ -2,7 +2,7 @@ import { InstanceStatus, ItemType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/auth/guard";
 import { forbidden, invalid, notFound } from "@/lib/errors";
-import { extForMime, mediaKey, mediaRule } from "@/lib/media";
+import { extForMime, isItemAnswered, mediaKey, mediaRule } from "@/lib/media";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
   (i.status === "OPEN" || i.status === "REJECTED") && i.dueAt.getTime() < now.getTime();
@@ -132,14 +132,7 @@ export type AnswerValue =
   | { type: "PHOTO" | "VIDEO"; fileKey: string; fileType: string };
 
 export function isAnswered(i: { type: ItemType; checked: boolean | null; text: string | null; number: number | null; choice: string | null; fileKey: string | null }) {
-  switch (i.type) {
-    case "CHECKBOX": return i.checked === true;
-    case "TEXT": return !!i.text?.trim();
-    case "NUMBER": return i.number !== null;
-    case "SELECT": return i.choice !== null;
-    case "PHOTO":
-    case "VIDEO": return i.fileKey !== null;
-  }
+  return isItemAnswered(i);
 }
 
 /** Loads an instance the caller may act on as its assignee. NOT_FOUND hides existence from everyone else. */
