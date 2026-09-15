@@ -72,3 +72,30 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
       - run: pnpm e2e
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, checkly]
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: /home/checkly
+    steps:
+      - run: git pull --ff-only
+      - run: docker compose -f docker-compose.prod.yml up -d --build
+      - name: Health check
+        run: |
+          for i in $(seq 1 18); do
+            curl -sf -o /dev/null -H "Host: checkly.cybercraft.az" http://localhost:80/login && { echo healthy; exit 0; }
+            sleep 5
+          done
+          docker compose -f docker-compose.prod.yml logs --tail 50 migrate app
+          exit 1
+      - if: always()
+        run: docker compose -f docker-compose.prod.yml ps
+      - if: success()
+        run: docker image prune -f
