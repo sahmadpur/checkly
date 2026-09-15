@@ -1,0 +1,3 @@
+{
+  "rule": { "daily": "Daily at {time}", "weekly": "Weekly on {days} at {time}", "monthly": "Monthly on day {day} at {time}" }
+}

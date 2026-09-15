@@ -30,7 +30,7 @@ export async function requirePropertyAccess(ctx: Ctx, propertyId: string) {
     },
     select: { id: true, orgId: true },
   });
-  if (!property) throw notFound("Property not found");
+  if (!property) throw notFound("propertyNotFound");
   return { ...property, role };
 }
 
@@ -38,7 +38,7 @@ export async function requirePropertyAccess(ctx: Ctx, propertyId: string) {
 export async function requireUser(): Promise<Ctx> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  if (!session.activeOrgId) throw forbidden("No active organization");
+  if (!session.activeOrgId) throw forbidden("noActiveOrg");
   return { userId: session.user.id, orgId: session.activeOrgId };
 }
 

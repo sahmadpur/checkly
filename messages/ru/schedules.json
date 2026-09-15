@@ -1,0 +1,3 @@
+{
+  "rule": { "daily": "Ежедневно в {time}", "weekly": "Еженедельно: {days} в {time}", "monthly": "Ежемесячно {day}-го числа в {time}" }
+}

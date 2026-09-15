@@ -9,6 +9,10 @@ import { ProfileForm } from "./profile-form";
 import { TimezoneForm } from "./timezone-form";
 import { NotificationPrefs } from "./notification-prefs";
 import { LogOut } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+import { LanguageSelect } from "@/components/language-select";
+import { Label } from "@/components/ui/label";
+import { Section } from "@/components/section";
 import { logoutAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 
@@ -18,10 +22,17 @@ export default async function SettingsPage() {
   const org = await db.org.findUniqueOrThrow({ where: { id: ctx.orgId }, select: { name: true, timezone: true } });
   const user = await db.user.findUniqueOrThrow({ where: { id: ctx.userId }, select: { name: true, phone: true, email: true } });
   const prefs = await getPreferences(ctx);
+  const t = await getTranslations("settings.language");
   return (
     <div className="space-y-8">
       <PageHeader title="Settings" />
       <ProfileForm name={user.name} phone={user.phone} />
+      <Section title={t("title")} description={t("description")} card>
+        <div className="space-y-1.5">
+          <Label htmlFor="locale">{t("label")}</Label>
+          <LanguageSelect />
+        </div>
+      </Section>
       <NotificationPrefs notifyPush={prefs.notifyPush} notifyEmail={prefs.notifyEmail} hasEmail={!!user.email} vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
       {role === "OWNER" && <OrgForm name={org.name} />}
       {role === "OWNER" && <TimezoneForm timezone={org.timezone} options={TIMEZONES} unset={org.timezone === "UTC"} />}

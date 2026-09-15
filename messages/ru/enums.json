@@ -1,0 +1,6 @@
+{
+  "role": { "OWNER": "Владелец", "MANAGER": "Менеджер", "WORKER": "Работник" },
+  "status": { "OPEN": "Открыт", "OVERDUE": "Просрочен", "SUBMITTED": "Отправлен", "APPROVED": "Одобрен", "REJECTED": "Нужна доработка" },
+  "itemType": { "CHECKBOX": "Флажок", "TEXT": "Текст", "NUMBER": "Число", "SELECT": "Выбор", "PHOTO": "Фото", "VIDEO": "Видео" },
+  "freq": { "DAILY": "Ежедневно", "WEEKLY": "Еженедельно", "MONTHLY": "Ежемесячно" }
+}

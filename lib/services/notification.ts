@@ -2,8 +2,9 @@ import { NotificationType, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole } from "@/lib/auth/guard";
 import { invalid, notFound } from "@/lib/errors";
+import type { CopyParams } from "@/lib/notifications/copy";
 
-export type NotifyRow = { orgId: string; userId: string; type: NotificationType; instanceId?: string | null; title: string; body: string; url: string };
+export type NotifyRow = { orgId: string; userId: string; type: NotificationType; instanceId?: string | null; url: string; params?: CopyParams; title?: string; body?: string };
 
 export async function notify(rows: NotifyRow[], tx: Prisma.TransactionClient | typeof db = db) {
   if (rows.length === 0) return;
@@ -28,7 +29,7 @@ export async function listMine(ctx: Ctx, limit = 50) {
     where: { orgId: ctx.orgId, userId: ctx.userId },
     // createMany can give same-millisecond rows equal createdAt; cuids are monotonic, so use them as the tiebreaker.
     orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: limit,
-    select: { id: true, type: true, title: true, body: true, url: true, createdAt: true, readAt: true },
+    select: { id: true, type: true, title: true, body: true, params: true, url: true, createdAt: true, readAt: true },
   });
 }
 
@@ -42,7 +43,7 @@ export async function markRead(ctx: Ctx, id: string) {
   const n = await db.notification.updateMany({ where: { id, orgId: ctx.orgId, userId: ctx.userId, readAt: null }, data: { readAt: new Date() } });
   if (n.count === 0) {
     const exists = await db.notification.findFirst({ where: { id, orgId: ctx.orgId, userId: ctx.userId }, select: { id: true } });
-    if (!exists) throw notFound("Notification not found");
+    if (!exists) throw notFound("notificationNotFound");
   }
 }
 
@@ -69,8 +70,8 @@ const b64url = /^[A-Za-z0-9_-]+=*$/;
  * single row per browser and stops notifications going to the wrong person.
  */
 export async function savePushSubscription(ctx: Ctx, sub: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string | null }) {
-  if (!/^https:\/\//.test(sub.endpoint)) throw invalid("Push endpoint must be https");
-  if (!b64url.test(sub.keys.p256dh) || !b64url.test(sub.keys.auth)) throw invalid("Invalid subscription keys");
+  if (!/^https:\/\//.test(sub.endpoint)) throw invalid("pushEndpointHttps");
+  if (!b64url.test(sub.keys.p256dh) || !b64url.test(sub.keys.auth)) throw invalid("pushKeysInvalid");
   await db.pushSubscription.upsert({
     where: { endpoint: sub.endpoint },
     create: { userId: ctx.userId, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth, userAgent: sub.userAgent ?? null },

@@ -29,10 +29,10 @@ export async function listMembers(ctx: Ctx) {
 
 async function assertNotLastOwner(tx: Prisma.TransactionClient, orgId: string, userId: string) {
   const target = await tx.orgMember.findUnique({ where: { orgId_userId: { orgId, userId } } });
-  if (!target) throw notFound("Member not found");
+  if (!target) throw notFound("memberNotFound");
   if (target.role !== "OWNER") return;
   const owners = await tx.orgMember.count({ where: { orgId, role: "OWNER" } });
-  if (owners <= 1) throw invalid("An organization must keep at least one owner");
+  if (owners <= 1) throw invalid("lastOwner");
 }
 
 export async function changeRole(ctx: Ctx, userId: string, role: Role) {
@@ -48,7 +48,7 @@ export async function changeRole(ctx: Ctx, userId: string, role: Role) {
 
 export async function removeMember(ctx: Ctx, userId: string) {
   await requireOrgRole(ctx, "OWNER");
-  if (userId === ctx.userId) throw invalid("You cannot remove yourself");
+  if (userId === ctx.userId) throw invalid("removeSelf");
   await db.$transaction(
     async (tx) => {
       await assertNotLastOwner(tx, ctx.orgId, userId);

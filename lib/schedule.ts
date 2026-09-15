@@ -1,11 +1,11 @@
 import { ScheduleFreq } from "@prisma/client";
+import { weekdayName } from "@/lib/format";
+import { DEFAULT_LOCALE, translatorFor } from "@/lib/i18n";
 
 export const CATCHUP_DAYS = 14;
 
 export type Rule = { freq: ScheduleFreq; daysOfWeek: number[]; dayOfMonth: number | null; dueTime: string; startsOn: Date; endsOn: Date | null };
 export type LocalDate = { y: number; m: number; d: number };
-
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const toUtcMidnight = (d: LocalDate) => new Date(Date.UTC(d.y, d.m - 1, d.d));
 export const fromUtcMidnight = (date: Date): LocalDate => ({ y: date.getUTCFullYear(), m: date.getUTCMonth() + 1, d: date.getUTCDate() });
@@ -83,10 +83,11 @@ export function nextOccurrence(rule: Rule, tz: string, from = new Date()): Date 
   return null;
 }
 
-export function describeRule(rule: Pick<Rule, "freq" | "daysOfWeek" | "dayOfMonth" | "dueTime">): string {
+export function describeRule(rule: Pick<Rule, "freq" | "daysOfWeek" | "dayOfMonth" | "dueTime">, locale: string = DEFAULT_LOCALE): string {
+  const t = translatorFor(locale, "schedules.rule");
   switch (rule.freq) {
-    case "DAILY": return `Daily at ${rule.dueTime}`;
-    case "WEEKLY": return `Weekly on ${[...rule.daysOfWeek].sort((a, b) => a - b).map((d) => DAY_NAMES[d]).join(", ")} at ${rule.dueTime}`;
-    case "MONTHLY": return `Monthly on day ${rule.dayOfMonth} at ${rule.dueTime}`;
+    case "DAILY": return t("daily", { time: rule.dueTime });
+    case "WEEKLY": return t("weekly", { days: [...rule.daysOfWeek].sort((a, b) => a - b).map((d) => weekdayName(d, locale)).join(", "), time: rule.dueTime });
+    case "MONTHLY": return t("monthly", { day: rule.dayOfMonth ?? 1, time: rule.dueTime });
   }
 }

@@ -167,7 +167,7 @@ describe("answer, submit, review", () => {
   test("submit requires required items; lists missing labels", async () => {
     const { org, mgr, w1, prop, ctx } = await setup();
     const inst = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id });
-    await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("Missing: Beds made, Towels left, Condition, Bathroom photo");
+    await expect(submit(ctx(w1.id), inst.id)).rejects.toMatchObject({ key: "missing", params: { labels: "Beds made, Towels left, Condition, Bathroom photo" } });
     const [cb, , num, sel, photo] = inst.items;
     await answerItem(ctx(w1.id), inst.id, cb.id, { type: "CHECKBOX", checked: true });
     await answerItem(ctx(w1.id), inst.id, num.id, { type: "NUMBER", number: 3 });
@@ -178,7 +178,7 @@ describe("answer, submit, review", () => {
     const d = await getInstance(ctx(w1.id), inst.id);
     expect(d.status).toBe("SUBMITTED");
     expect(d.submittedAt).not.toBeNull();
-    await expect(submit(ctx(w1.id), inst.id)).rejects.toThrow("SUBMITTED");
+    await expect(submit(ctx(w1.id), inst.id)).rejects.toMatchObject({ key: "statusNotEditable", params: { status: "SUBMITTED" } });
   });
 
   test.skipIf(!storageConfigured())("a media answer needs the object to exist", async () => {
@@ -199,7 +199,7 @@ describe("answer, submit, review", () => {
     const results = await Promise.allSettled([submit(ctx(w1.id), inst.id), submit(ctx(w1.id), inst.id)]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     const loser = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
-    expect(loser.reason.message).toMatch(/already submitted|is SUBMITTED/);
+    expect(["alreadySubmitted", "statusNotEditable"]).toContain(loser.reason.key);
   });
 
   test("review: reject reopens with comment; resubmit; approve is terminal; permissions", async () => {
@@ -216,7 +216,7 @@ describe("answer, submit, review", () => {
     await review(ctx(mgr.id), inst.id, "APPROVED");
     d = await getInstance(ctx(mgr.id), inst.id);
     expect([d.status, d.canReview]).toEqual(["APPROVED", false]);
-    await expect(review(ctx(mgr.id), inst.id, "REJECTED", "x")).rejects.toThrow("APPROVED");
+    await expect(review(ctx(mgr.id), inst.id, "REJECTED", "x")).rejects.toMatchObject({ key: "notSubmitted", params: { status: "APPROVED" } });
     const stranger = await makeUser();
     await makeMember(org.id, stranger.id, "MANAGER");
     const inst2 = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w2.id, assignedById: mgr.id, status: "SUBMITTED" });
@@ -239,7 +239,7 @@ describe("requestUpload", () => {
     await expect(requestUpload(ctx(w1.id), { ...base, contentType: "text/plain" })).rejects.toMatchObject({ code: "INVALID" });
     await expect(requestUpload(ctx(w1.id), { ...base, itemId: cb.id })).rejects.toMatchObject({ code: "INVALID" });
     await db.checklistInstance.update({ where: { id: inst.id }, data: { status: "SUBMITTED" } });
-    await expect(requestUpload(ctx(w1.id), base)).rejects.toThrow("cannot be edited");
+    await expect(requestUpload(ctx(w1.id), base)).rejects.toThrow("cannotEdit");
   });
 
   test.skipIf(!storageConfigured())("returns the deterministic key and a presigned URL", async () => {
@@ -272,7 +272,7 @@ describe("notifications from instance events", () => {
     const assigned = await db.notification.findMany({ where: { type: "ASSIGNED" }, orderBy: { userId: "asc" } });
     expect(assigned.map((n) => n.userId).sort()).toEqual([w1.id, w2.id].sort());
     expect(assigned[0].url).toMatch(/^\/checklists\//);
-    expect(assigned[0].title).toBe("New checklist: Checkout clean at Villa");
+    expect(assigned[0].params).toMatchObject({ template: "Checkout clean", property: "Villa" });
 
     const inst = await getInstance(ctx(w1.id), ids[0]);
     for (const it of inst.items.filter((i) => i.required)) {
@@ -284,10 +284,10 @@ describe("notifications from instance events", () => {
     await submit(ctx(w1.id), inst.id);
     const submitted = await db.notification.findMany({ where: { type: "SUBMITTED" } });
     expect(submitted.map((n) => n.userId).sort()).toEqual([mgr.id, owner.id].sort());
-    expect(submitted[0].title).toBe("W1 submitted Checkout clean at Villa");
+    expect(submitted[0].params).toMatchObject({ worker: "W1" });
 
     await review(ctx(mgr.id), inst.id, "REJECTED", "Redo");
-    expect(await db.notification.findFirst({ where: { type: "REJECTED", userId: w1.id } })).toMatchObject({ body: "Redo" });
+    expect(await db.notification.findFirst({ where: { type: "REJECTED", userId: w1.id } })).toMatchObject({ params: { comment: "Redo" } });
     await submit(ctx(w1.id), inst.id);
     await review(ctx(mgr.id), inst.id, "APPROVED");
     expect(await db.notification.count({ where: { type: "APPROVED", userId: w1.id } })).toBe(1);

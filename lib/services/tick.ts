@@ -1,7 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CATCHUP_DAYS, dueAtFor, fromUtcMidnight, localToday, occurrencesBetween, toUtcMidnight } from "@/lib/schedule";
-import { buildCopy } from "@/lib/notifications/copy";
+import { copyParams, renderStored } from "@/lib/notifications/copy";
+import { translatorFor } from "@/lib/i18n";
 import { pushConfigured, sendPush } from "@/lib/notifications/push";
 import { escapeHtml, sendMail } from "@/lib/email";
 import { notify } from "@/lib/services/notification";
@@ -74,8 +75,7 @@ export async function sendReminders(now = new Date()) {
     try {
       const claimed = await db.checklistInstance.updateMany({ where: { id: r.id, remindedAt: null }, data: { remindedAt: now } });
       if (claimed.count === 0) continue;
-      const copy = buildCopy("DUE_SOON", { template: r.templateName, property: r.property.name, dueAt: r.dueAt, tz: r.org.timezone, instanceId: r.id });
-      await notify([{ orgId: r.orgId, userId: r.assigneeId, type: "DUE_SOON", instanceId: r.id, ...copy }]);
+      await notify([{ orgId: r.orgId, userId: r.assigneeId, type: "DUE_SOON", instanceId: r.id, url: `/checklists/${r.id}`, params: copyParams({ template: r.templateName, property: r.property.name, dueAt: r.dueAt, tz: r.org.timezone }) }]);
       count++;
     } catch (e) {
       errors++;
@@ -95,8 +95,7 @@ export async function markOverdue(now = new Date()) {
     try {
       const claimed = await db.checklistInstance.updateMany({ where: { id: r.id, overdueNotifiedAt: null }, data: { overdueNotifiedAt: now } });
       if (claimed.count === 0) continue;
-      const copy = buildCopy("OVERDUE", { template: r.templateName, property: r.property.name, dueAt: r.dueAt, tz: r.org.timezone, instanceId: r.id });
-      await notify([{ orgId: r.orgId, userId: r.assigneeId, type: "OVERDUE", instanceId: r.id, ...copy }]);
+      await notify([{ orgId: r.orgId, userId: r.assigneeId, type: "OVERDUE", instanceId: r.id, url: `/checklists/${r.id}`, params: copyParams({ template: r.templateName, property: r.property.name, dueAt: r.dueAt, tz: r.org.timezone }) }]);
       count++;
     } catch (e) {
       errors++;
@@ -111,13 +110,15 @@ const MAX_ATTEMPTS = 3;
 export async function drainOutbox(now = new Date()) {
   const rows = await db.notification.findMany({
     where: { createdAt: { gte: new Date(now.getTime() - 24 * 3600_000) }, attempts: { lt: MAX_ATTEMPTS }, OR: [{ pushSentAt: null }, { emailSentAt: null }] },
-    include: { user: { select: { email: true, notifyPush: true, notifyEmail: true, pushSubscriptions: true } } },
+    include: { user: { select: { email: true, locale: true, notifyPush: true, notifyEmail: true, pushSubscriptions: true } } },
     orderBy: { createdAt: "asc" }, take: 200,
   });
   let count = 0, errors = 0;
   for (const n of rows) {
     try {
       const msgs: string[] = [];
+      const locale = n.user.locale ?? "en";
+      const { title, body } = renderStored(n, locale);
       let pushSentAt = n.pushSentAt;
       let emailSentAt = n.emailSentAt;
       if (!pushSentAt) {
@@ -127,7 +128,7 @@ export async function drainOutbox(now = new Date()) {
           let ok = true;
           for (const sub of subs) {
             try {
-              const r = await sendPush(sub, { title: n.title, body: n.body, url: n.url, tag: n.id });
+              const r = await sendPush(sub, { title, body, url: n.url, tag: n.id });
               if (r === "gone") await db.pushSubscription.delete({ where: { id: sub.id } });
               else await db.pushSubscription.update({ where: { id: sub.id }, data: { lastUsedAt: now } });
             } catch (e) { ok = false; msgs.push(`push: ${(e as Error).message}`); }
@@ -140,7 +141,7 @@ export async function drainOutbox(now = new Date()) {
         else {
           try {
             const link = escapeHtml(`${process.env.APP_URL ?? ""}${n.url}`);
-            await sendMail({ to: n.user.email, subject: n.title, html: `<p>${escapeHtml(n.title)}</p><p>${escapeHtml(n.body)}</p><p><a href="${link}">Open in Checkly</a></p>` });
+            await sendMail({ to: n.user.email, subject: title, html: `<p>${escapeHtml(title)}</p><p>${escapeHtml(body)}</p><p><a href="${link}">${escapeHtml(translatorFor(locale, "email")("open"))}</a></p>` });
             emailSentAt = now;
           } catch (e) { msgs.push(`email: ${(e as Error).message}`); }
         }

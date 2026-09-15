@@ -5,7 +5,7 @@ import { forbidden } from "@/lib/errors";
 
 test("run maps success, AppError, and unknown errors", async () => {
   expect(await run(async () => 42)).toEqual({ ok: true, data: 42 });
-  expect(await run(async () => { throw forbidden("Nope"); })).toEqual({ ok: false, error: "Nope" });
+  expect(await run(async () => { throw forbidden("removeSelf"); })).toEqual({ ok: false, error: "You cannot remove yourself" });
   expect(await run(async () => { throw new Error("prisma P2002 blah"); })).toEqual({ ok: false, error: "Something went wrong" });
 });
 

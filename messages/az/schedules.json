@@ -1,0 +1,3 @@
+{
+  "rule": { "daily": "Hər gün {time}", "weekly": "Hər həftə {days} {time}", "monthly": "Hər ay {day}-cü gün {time}" }
+}

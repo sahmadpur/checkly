@@ -1,0 +1,6 @@
+{
+  "role": { "OWNER": "Sahib", "MANAGER": "Menecer", "WORKER": "İşçi" },
+  "status": { "OPEN": "Açıq", "OVERDUE": "Gecikmiş", "SUBMITTED": "Göndərilib", "APPROVED": "Təsdiqlənib", "REJECTED": "Yenidən işlənməli" },
+  "itemType": { "CHECKBOX": "Qeyd qutusu", "TEXT": "Mətn", "NUMBER": "Rəqəm", "SELECT": "Seçim", "PHOTO": "Foto", "VIDEO": "Video" },
+  "freq": { "DAILY": "Gündəlik", "WEEKLY": "Həftəlik", "MONTHLY": "Aylıq" }
+}

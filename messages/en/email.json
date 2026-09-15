@@ -1,0 +1,5 @@
+{
+  "open": "Open in Checkly",
+  "reset": { "subject": "Reset your Checkly password", "body": "Click to reset your password. The link expires in 1 hour." },
+  "invite": { "subject": "You're invited to {org} on Checkly", "body": "You've been invited to join <b>{org}</b> as {role}.", "expires": "This link expires in 7 days." }
+}
