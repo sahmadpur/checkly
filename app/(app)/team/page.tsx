@@ -10,6 +10,7 @@ import { List } from "@/components/ui/list";
 import { InviteForm } from "./invite-form";
 import { MemberRow } from "./member-row";
 import { InviteRow } from "./invite-row";
+import { getTranslations } from "next-intl/server";
 
 export default async function TeamPage() {
   const ctx = await requireUser();
@@ -20,11 +21,11 @@ export default async function TeamPage() {
     if (e instanceof AppError && e.code === "FORBIDDEN") return <Forbidden />;
     throw e;
   }
-  const [members, invites, properties] = await Promise.all([listMembers(ctx), listInvites(ctx), listProperties(ctx)]);
+  const [members, invites, properties, t] = await Promise.all([listMembers(ctx), listInvites(ctx), listProperties(ctx), getTranslations("team")]);
   return (
     <div className="space-y-8">
-      <PageHeader title="Team" description={`${members.length} member${members.length === 1 ? "" : "s"}`} />
-      <Section title="Members">
+      <PageHeader title={t("title")} description={t("memberCount", { count: members.length })} />
+      <Section title={t("members")}>
         <List>
           {members.map((m) => (
             <MemberRow key={m.userId} isOwner={role === "OWNER"} isSelf={m.userId === ctx.userId}
@@ -33,7 +34,7 @@ export default async function TeamPage() {
         </List>
       </Section>
       {invites.length > 0 && (
-        <Section title="Pending invitations">
+        <Section title={t("pending")}>
           <List>{invites.map((i) => <InviteRow key={i.id} invite={i} />)}</List>
         </Section>
       )}

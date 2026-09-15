@@ -1,3 +1,27 @@
 {
-  "rule": { "daily": "Daily at {time}", "weekly": "Weekly on {days} at {time}", "monthly": "Monthly on day {day} at {time}" }
+  "rule": { "daily": "Daily at {time}", "weekly": "Weekly on {days} at {time}", "monthly": "Monthly on day {day} at {time}" },
+  "form": {
+    "whatWho": "What and who",
+    "template": "Template",
+    "archived": "This template is archived. Pick another to keep generating checklists.",
+    "workers": "Workers",
+    "noWorkers": "Add members to this property first.",
+    "when": "When",
+    "repeats": "Repeats",
+    "dayOfMonth": "Day of month",
+    "dueTime": "Due time",
+    "startsOn": "Starts on",
+    "endsOn": "Ends on",
+    "saved": "Saved. Changes apply to future occurrences.",
+    "save": "Save schedule",
+    "create": "Create schedule"
+  },
+  "detail": { "paused": "Paused" },
+  "controls": {
+    "resume": "Resume",
+    "pause": "Pause",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this schedule? Existing checklists are kept.",
+    "failed": "Failed"
+  }
 }

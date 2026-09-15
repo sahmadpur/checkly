@@ -1,3 +1,27 @@
 {
-  "rule": { "daily": "Hər gün {time}", "weekly": "Hər həftə {days} {time}", "monthly": "Hər ay {day}-cü gün {time}" }
+  "rule": { "daily": "Hər gün {time}", "weekly": "Hər həftə {days} {time}", "monthly": "Hər ay {day}-cü gün {time}" },
+  "form": {
+    "whatWho": "Nə və kim",
+    "template": "Şablon",
+    "archived": "Bu şablon arxivlənib. Yoxlama siyahıları yaranmağa davam etsin deyə başqasını seçin.",
+    "workers": "İşçilər",
+    "noWorkers": "Əvvəlcə bu obyektə üzv əlavə edin.",
+    "when": "Nə vaxt",
+    "repeats": "Təkrarlanır",
+    "dayOfMonth": "Ayın günü",
+    "dueTime": "Son vaxt",
+    "startsOn": "Başlanğıc",
+    "endsOn": "Bitmə",
+    "saved": "Yadda saxlanıldı. Dəyişikliklər gələcək təkrarlara tətbiq olunur.",
+    "save": "Cədvəli saxla",
+    "create": "Cədvəl yarat"
+  },
+  "detail": { "paused": "Dayandırılıb" },
+  "controls": {
+    "resume": "Davam et",
+    "pause": "Dayandır",
+    "delete": "Sil",
+    "deleteConfirm": "Bu cədvəl silinsin? Mövcud yoxlama siyahıları qalır.",
+    "failed": "Alınmadı"
+  }
 }

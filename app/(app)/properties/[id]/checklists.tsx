@@ -1,12 +1,14 @@
 import type { InstanceSummary } from "@/lib/services/instance";
 import { ChecklistList } from "@/components/checklist-list";
 import { Section } from "@/components/section";
+import { getTranslations } from "next-intl/server";
 
-export function PropertyChecklists({ propertyId, instances, filter }: { propertyId: string; instances: InstanceSummary[]; filter: string }) {
+export async function PropertyChecklists({ propertyId, instances, filter }: { propertyId: string; instances: InstanceSummary[]; filter: string }) {
+  const t = await getTranslations("properties.checklists");
   return (
-    <Section title="Checklists">
+    <Section title={t("title")}>
       <ChecklistList basePath={`/properties/${propertyId}`} instances={instances} filter={filter} subtitle={(i) => i.assigneeName}
-        empty="No checklists yet. Assign one below or set up a schedule." />
+        empty={t("empty")} />
     </Section>
   );
 }

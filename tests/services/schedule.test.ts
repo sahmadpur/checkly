@@ -4,6 +4,7 @@ import { createSchedule, deleteSchedule, getSchedule, listSchedules, pauseSchedu
 import { removeMember } from "@/lib/services/member";
 import { removePropertyMember } from "@/lib/services/property";
 import { makeMember, makeOrg, makeProperty, makeTemplate, makeUser } from "@/tests/helpers/db";
+import { describeRule } from "@/lib/schedule";
 
 async function setup() {
   const org = await makeOrg();
@@ -25,12 +26,13 @@ describe("schedule CRUD", () => {
     const { mgr, w1, w2, prop, ctx, base } = await setup();
     const { id } = await createSchedule(ctx(mgr.id), prop.id, base);
     const [row] = await listSchedules(ctx(mgr.id), prop.id);
-    expect(row).toMatchObject({ id, name: "Checkout clean", description: "Weekly on Mon, Wed at 09:00", templateArchived: false });
+    expect(row).toMatchObject({ id, name: "Checkout clean", templateArchived: false });
+    expect(describeRule(row)).toBe("Weekly on Mon, Wed at 09:00");
     expect(row.assignees.map((a) => a.userId)).toEqual([w1.id]);
     expect(row.nextAt).toBeInstanceOf(Date);
     await updateSchedule(ctx(mgr.id), id, { ...base, freq: "DAILY", daysOfWeek: [], assigneeIds: [w1.id, w2.id] });
     const g = await getSchedule(ctx(mgr.id), id);
-    expect(g.description).toBe("Daily at 09:00");
+    expect(describeRule(g)).toBe("Daily at 09:00");
     expect(g.assignees.map((a) => a.userId).sort()).toEqual([w1.id, w2.id].sort());
     await pauseSchedule(ctx(mgr.id), id);
     expect((await getSchedule(ctx(mgr.id), id)).pausedAt).not.toBeNull();

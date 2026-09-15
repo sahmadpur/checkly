@@ -1,1 +1,64 @@
-{}
+{
+  "index": {
+    "title": "Properties",
+    "new": "New property",
+    "emptyManagerTitle": "Add your first property",
+    "emptyManagerBody": "Each property gets its own members, checklists and schedules.",
+    "emptyWorkerTitle": "No properties assigned to you yet",
+    "emptyWorkerBody": "A manager adds you to a property before work shows up here.",
+    "noAddress": "No address",
+    "members": "{count, plural, one {# member} other {# members}}",
+    "open": "{count} open",
+    "overdue": "{count} overdue"
+  },
+  "form": {
+    "name": "Name",
+    "namePlaceholder": "Villa Azul",
+    "address": "Address",
+    "addressPlaceholder": "Optional",
+    "saved": "Property saved",
+    "save": "Save details",
+    "create": "Create property"
+  },
+  "detail": { "details": "Details" },
+  "checklists": { "title": "Checklists", "empty": "No checklists yet. Assign one below or set up a schedule." },
+  "assign": {
+    "title": "Assign a checklist",
+    "description": "Each worker gets their own copy.",
+    "noTemplates": "Create a template first.",
+    "noProperties": "Create a property first.",
+    "property": "Property",
+    "template": "Template",
+    "due": "Due",
+    "workers": "Workers",
+    "noWorkers": "Add members to this property first.",
+    "submit": "Assign"
+  },
+  "assigned": "Assigned to {count, plural, one {# worker} other {# workers}}.",
+  "members": {
+    "title": "Members",
+    "description": "Only members can be assigned work here.",
+    "addLabel": "Add member",
+    "addPlaceholder": "Add a member…",
+    "empty": "Nobody works here yet.",
+    "remove": "Remove",
+    "failed": "Failed"
+  },
+  "schedules": {
+    "title": "Schedules",
+    "new": "New schedule",
+    "empty": "No schedules. Repeat a checklist daily, weekly or monthly.",
+    "noWorkersInline": "no workers",
+    "paused": "Paused",
+    "noWorkers": "No workers",
+    "archivedTemplate": "Archived template",
+    "next": "next",
+    "tz": "Due times are in {tz}."
+  },
+  "danger": {
+    "title": "Delete this property",
+    "body": "Removes its checklists and schedules too. This cannot be undone.",
+    "confirm": "Delete \"{name}\"? This cannot be undone.",
+    "button": "Delete property"
+  }
+}

@@ -2,7 +2,7 @@ import { Prisma, ScheduleFreq } from "@prisma/client";
 import { db } from "@/lib/db";
 import { Ctx, requireOrgRole, requirePropertyAccess } from "@/lib/auth/guard";
 import { invalid, notFound } from "@/lib/errors";
-import { describeRule, nextOccurrence } from "@/lib/schedule";
+import { nextOccurrence } from "@/lib/schedule";
 
 export type ScheduleInput = { templateId: string; assigneeIds: string[]; freq: ScheduleFreq; daysOfWeek: number[]; dayOfMonth: number | null; dueTime: string; startsOn: Date; endsOn: Date | null };
 
@@ -32,7 +32,6 @@ function toRow(s: Prisma.ScheduleGetPayload<{ include: typeof include }>) {
     id: s.id, propertyId: s.propertyId, templateId: s.templateId, name: s.name, ...rule, pausedAt: s.pausedAt,
     assignees: s.assignees.map((a) => ({ userId: a.userId, name: a.user.name })),
     templateArchived: s.template.archivedAt !== null,
-    description: describeRule(rule),
     nextAt: s.pausedAt ? null : nextOccurrence(rule, s.org.timezone),
   };
 }
