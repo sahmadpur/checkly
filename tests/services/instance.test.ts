@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { db } from "@/lib/db";
-import { answerItem, assign, createInstances, getInstance, instanceCounts, isOverdue, listForProperty, listMine, requestUpload, review, submit } from "@/lib/services/instance";
+import { answerItem, assign, createInstances, getInstance, instanceCounts, isOverdue, listAll, listForProperty, listMine, requestUpload, review, submit } from "@/lib/services/instance";
 import { removeMember } from "@/lib/services/member";
 import { mediaKey } from "@/lib/media";
 import { putObject, storageConfigured } from "@/lib/storage";
@@ -76,6 +76,21 @@ describe("lists and access", () => {
     const stranger = await makeUser();
     await makeMember(org.id, stranger.id, "MANAGER");
     await expect(listForProperty(ctx(stranger.id), prop.id)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  test("listAll: owner sees whole org, manager only member properties, worker forbidden; status filter", async () => {
+    const { org, owner, mgr, w1, w2, prop, ctx } = await setup();
+    const other = await makeProperty(org.id, "Other");
+    const a = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w1.id, assignedById: mgr.id, dueAt: new Date(Date.now() - 3600_000) });
+    const b = await makeInstance({ orgId: org.id, propertyId: prop.id, assigneeId: w2.id, assignedById: mgr.id, status: "SUBMITTED" });
+    const c = await makeInstance({ orgId: org.id, propertyId: other.id, assigneeId: w1.id, assignedById: owner.id });
+    const foreign = await makeOrg("Foreign");
+    await makeInstance({ orgId: foreign.id, propertyId: (await makeProperty(foreign.id)).id, assigneeId: w1.id, assignedById: owner.id });
+    expect((await listAll(ctx(owner.id))).map((i) => i.id).sort()).toEqual([a.id, b.id, c.id].sort());
+    expect((await listAll(ctx(mgr.id))).map((i) => i.id).sort()).toEqual([a.id, b.id].sort());
+    expect((await listAll(ctx(owner.id), { status: "OVERDUE" })).map((i) => i.id)).toEqual([a.id]);
+    expect((await listAll(ctx(owner.id), { status: "SUBMITTED" })).map((i) => i.id)).toEqual([b.id]);
+    await expect(listAll(ctx(w1.id))).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   test("workers see only their own instances in listForProperty and instanceCounts", async () => {

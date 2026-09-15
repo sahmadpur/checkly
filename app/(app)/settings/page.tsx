@@ -8,6 +8,9 @@ import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
 import { TimezoneForm } from "./timezone-form";
 import { NotificationPrefs } from "./notification-prefs";
+import { LogOut } from "lucide-react";
+import { logoutAction } from "@/actions/auth";
+import { Button } from "@/components/ui/button";
 
 export default async function SettingsPage() {
   const ctx = await requireUser();
@@ -23,6 +26,9 @@ export default async function SettingsPage() {
       {role === "OWNER" && <OrgForm name={org.name} />}
       {role === "OWNER" && <TimezoneForm timezone={org.timezone} options={TIMEZONES} unset={org.timezone === "UTC"} />}
       <PasswordForm />
+      <form action={logoutAction}>
+        <Button type="submit" variant="outline" className="w-full sm:w-auto"><LogOut aria-hidden /> Sign out</Button>
+      </form>
     </div>
   );
 }

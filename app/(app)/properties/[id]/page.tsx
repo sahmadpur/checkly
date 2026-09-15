@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
-import type { InstanceStatus } from "@prisma/client";
 import { requireUser, requireOrgRole, roleAtLeast } from "@/lib/auth/guard";
 import { getProperty } from "@/lib/services/property";
 import { listMembers } from "@/lib/services/member";
-import { listForProperty } from "@/lib/services/instance";
+import { listForProperty, type StatusFilter } from "@/lib/services/instance";
 import { listTemplates } from "@/lib/services/template";
 import { listSchedules } from "@/lib/services/schedule";
 import { AppError } from "@/lib/errors";
@@ -12,6 +11,7 @@ import { Section } from "@/components/section";
 import { PropertyForm } from "../new/property-form";
 import { PropertyMembers } from "./members";
 import { PropertyChecklists } from "./checklists";
+import { parseStatusFilter } from "@/components/checklist-list";
 import { PropertySchedules } from "./schedules";
 import { AssignForm } from "./assign-form";
 import { DeleteProperty } from "./danger";
@@ -33,8 +33,8 @@ export default async function PropertyPage({ params, searchParams }: { params: P
     ? (await listMembers(ctx)).filter((m) => !assigned.has(m.userId)).map(({ userId, name }) => ({ userId, name }))
     : [];
   const { status } = await searchParams;
-  const filter = ["OPEN", "OVERDUE", "SUBMITTED", "APPROVED", "REJECTED"].includes(status ?? "") ? status! : "";
-  const instances = await listForProperty(ctx, id, filter ? { status: filter as InstanceStatus | "OVERDUE" } : {});
+  const filter = parseStatusFilter(status);
+  const instances = await listForProperty(ctx, id, filter ? { status: filter as StatusFilter } : {});
   const templates = canEdit ? await listTemplates(ctx) : [];
   const schedules = canEdit ? await listSchedules(ctx, id) : [];
 
