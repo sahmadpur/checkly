@@ -11,15 +11,19 @@ import { Section } from "@/components/section";
 import { toLocalInputValue } from "@/lib/format";
 
 type Opt = { id: string; name: string };
+export type PropertyOpt = Opt & { workers: Opt[] };
 
-export function AssignForm({ propertyId, templates, workers }: { propertyId: string; templates: Opt[]; workers: Opt[] }) {
+/** Pass `propertyId` + `workers` on a property page, or `properties` for an org-wide form with a property picker. */
+export function AssignForm({ propertyId, templates, workers, properties }: { propertyId?: string; templates: Opt[]; workers?: Opt[]; properties?: PropertyOpt[] }) {
+  const [picked, setPicked] = useState(properties?.[0]?.id ?? propertyId ?? "");
+  const activeWorkers = properties ? (properties.find((p) => p.id === picked)?.workers ?? []) : (workers ?? []);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [defaultDue] = useState(() => toLocalInputValue(new Date(Date.now() + 24 * 3600_000)));
   return (
     <Section title="Assign a checklist" description="Each worker gets their own copy." card>
-      {templates.length === 0 ? <p className="text-sm text-muted-foreground">Create a template first.</p> : (
+      {templates.length === 0 ? <p className="text-sm text-muted-foreground">Create a template first.</p> : properties && properties.length === 0 ? <p className="text-sm text-muted-foreground">Create a property first.</p> : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -28,7 +32,7 @@ export function AssignForm({ propertyId, templates, workers }: { propertyId: str
             const local = String(fd.get("dueAt"));
             start(async () => {
               const r = await assignChecklistAction({
-                templateId: String(fd.get("templateId")), propertyId,
+                templateId: String(fd.get("templateId")), propertyId: picked,
                 assigneeIds: fd.getAll("assigneeIds").map(String),
                 dueAt: new Date(local).toISOString(),
               });
@@ -37,6 +41,14 @@ export function AssignForm({ propertyId, templates, workers }: { propertyId: str
           }}
           className="space-y-4"
         >
+          {properties && (
+            <div className="space-y-1.5">
+              <Label htmlFor="propertyId">Property</Label>
+              <Select id="propertyId" name="propertyId" value={picked} onChange={(e) => setPicked(e.target.value)} required>
+                {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </Select>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="templateId">Template</Label>
@@ -51,10 +63,10 @@ export function AssignForm({ propertyId, templates, workers }: { propertyId: str
           </div>
           <fieldset className="space-y-2">
             <legend className="mb-1 text-sm font-medium">Workers</legend>
-            {workers.length === 0 && <p className="text-sm text-muted-foreground">Add members to this property first.</p>}
+            {activeWorkers.length === 0 && <p className="text-sm text-muted-foreground">Add members to this property first.</p>}
             <div className="grid gap-2 sm:grid-cols-2">
-              {workers.map((w) => (
-                <label key={w.id} className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-accent/50"><input type="checkbox" name="assigneeIds" value={w.id} /> {w.name}</label>
+              {activeWorkers.map((w) => (
+                <label key={`${picked}:${w.id}`} className="flex items-center gap-3 rounded-lg border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-accent/50"><input type="checkbox" name="assigneeIds" value={w.id} /> {w.name}</label>
               ))}
             </div>
           </fieldset>
