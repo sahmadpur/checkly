@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/guard";
 import { getInstance } from "@/lib/services/instance";
@@ -7,6 +6,8 @@ import { AppError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
 import { LocalTime } from "@/components/local-time";
+import { PageHeader } from "@/components/page-header";
+import { Notice } from "@/components/notice";
 import { AnswerView } from "./answer-view";
 import { ReviewForm } from "./review-form";
 import { FillForm } from "./fill-form";
@@ -33,19 +34,21 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
   }
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground"><Link href={`/properties/${inst.propertyId}`} className="underline">{inst.propertyName}</Link> · {inst.assigneeName}</p>
-        <h1 className="flex flex-wrap items-center gap-2 text-xl font-semibold">{inst.templateName} <StatusBadge status={inst.status} overdue={inst.overdue} /></h1>
-        <p className="text-sm text-muted-foreground">Due <LocalTime iso={inst.dueAt.toISOString()} fallback={formatDateTime(inst.dueAt)} /></p>
-        {inst.scheduleName && <p className="text-sm text-muted-foreground">From schedule: {inst.scheduleName}</p>}
-      </div>
+      <PageHeader
+        title={<span className="flex flex-wrap items-center gap-x-3 gap-y-1">{inst.templateName} <StatusBadge status={inst.status} overdue={inst.overdue} /></span>}
+        back={{ href: `/properties/${inst.propertyId}`, label: inst.propertyName }}
+        description={<>
+          Due <LocalTime iso={inst.dueAt.toISOString()} fallback={formatDateTime(inst.dueAt)} className={inst.overdue ? "font-medium text-destructive" : undefined} /> · {inst.assigneeName}
+          {inst.scheduleName && <> · from schedule {inst.scheduleName}</>}
+        </>}
+      />
       {inst.status === "REJECTED" && inst.reviewComment && (
-        <div role="status" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="font-medium">Needs rework{inst.reviewedByName ? ` · ${inst.reviewedByName}` : ""}</p>
+        <Notice tone="warning">
+          <p className="font-medium">Sent back{inst.reviewedByName ? ` by ${inst.reviewedByName}` : ""}</p>
           <p className="whitespace-pre-wrap">{inst.reviewComment}</p>
-        </div>
+        </Notice>
       )}
-      {inst.status === "APPROVED" && inst.reviewComment && <p className="text-sm text-muted-foreground">Reviewer note: {inst.reviewComment}</p>}
+      {inst.status === "APPROVED" && inst.reviewComment && <Notice tone="success">Reviewer note: {inst.reviewComment}</Notice>}
       {inst.canFill ? <FillForm instance={inst} mediaUrls={mediaUrls} /> : <AnswerView items={inst.items} mediaUrls={mediaUrls} downloadUrls={downloadUrls} />}
       {inst.canReview && <ReviewForm instanceId={inst.id} />}
     </div>

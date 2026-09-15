@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormError } from "@/components/form-error";
 import { SubmitButton } from "@/components/submit-button";
+import { Notice } from "@/components/notice";
+import Link from "next/link";
 
 export function ForgotForm() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, start] = useTransition();
 
-  if (done) return <p className="text-sm">If an account with an email exists for that identifier, a reset link has been sent.</p>;
+  if (done) return <Notice tone="success">If that account has an email address, a reset link is on its way. Check your inbox.</Notice>;
 
   return (
     <form
@@ -30,7 +32,8 @@ export function ForgotForm() {
         <Input id="identifier" name="identifier" required />
       </div>
       <FormError message={error} />
-      <SubmitButton pending={pending}>Send reset link</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">Send reset link</SubmitButton>
+      <p className="pt-2 text-center text-sm text-muted-foreground"><Link href="/login" className="underline underline-offset-4 hover:text-foreground">Back to sign in</Link></p>
     </form>
   );
 }

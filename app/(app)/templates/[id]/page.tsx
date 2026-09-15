@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/guard";
 import { getTemplate } from "@/lib/services/template";
 import { AppError } from "@/lib/errors";
 import { Forbidden } from "@/components/forbidden";
+import { PageHeader } from "@/components/page-header";
 import { TemplateBuilder } from "../template-builder";
 import { ArchiveButton } from "./archive-button";
 
@@ -18,11 +19,10 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
     throw e;
   }
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{t.name}{t.archivedAt ? " (archived)" : ""}</h1>
+    <div className="space-y-6">
+      <PageHeader title={t.name} back={{ href: "/templates", label: "Templates" }} description={t.archivedAt ? "Archived. Schedules using it stop generating until you unarchive it." : undefined}>
         <ArchiveButton id={t.id} archived={!!t.archivedAt} />
-      </div>
+      </PageHeader>
       <TemplateBuilder template={{ id: t.id, name: t.name, description: t.description, items: t.items.map(({ type, label, required, options, min, max }) => ({ type, label, required, options, min, max })) }} />
     </div>
   );

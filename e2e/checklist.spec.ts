@@ -53,7 +53,7 @@ test("template → assign → fill → reject → resubmit → approve", async (
   await page.goto("/templates/new");
   await page.fill("#name", templateName);
   await page.getByLabel("Item label").first().fill("Beds made");
-  await page.getByRole("button", { name: "+ Text" }).click();
+  await page.getByRole("button", { name: "Text", exact: true }).click();
   await page.getByLabel("Item label").nth(1).fill("Notes");
   await page.getByLabel("Required").nth(1).uncheck();
   await page.click("button[type=submit]");
@@ -65,7 +65,7 @@ test("template → assign → fill → reject → resubmit → approve", async (
   await worker.goto("/today");
   await worker.getByRole("link", { name: new RegExp(templateName) }).click();
   await worker.getByRole("button", { name: "Mark done" }).click();
-  await expect(worker.getByText("✓ Done")).toBeVisible();
+  await expect(worker.getByRole("button", { name: "Done", exact: true })).toBeVisible();
   await expect(worker.getByText("1 of 1 required done")).toBeVisible();
   await worker.getByRole("button", { name: "Submit" }).click();
   await expect(worker.getByText("Submitted")).toBeVisible();

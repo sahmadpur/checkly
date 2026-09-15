@@ -1,12 +1,17 @@
 "use client";
 import { useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
 import { createTemplateAction, updateTemplateAction } from "@/actions/template";
 import type { TemplateFormInput } from "@/actions/template.schemas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { FormError } from "@/components/form-error";
+import { FormSuccess } from "@/components/form-success";
 import { SubmitButton } from "@/components/submit-button";
+import { Section } from "@/components/section";
 
 type Item = Omit<TemplateFormInput["items"][number], "options" | "min" | "max"> & {
   options: string[];
@@ -44,51 +49,59 @@ export function TemplateBuilder({ template }: { template?: { id: string; name: s
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1"><Label htmlFor="name">Name</Label><Input id="name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
-        <div className="space-y-1"><Label htmlFor="description">Description</Label><Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-      </div>
+    <form onSubmit={onSubmit} className="space-y-8">
+      <Section title="Details" card>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5"><Label htmlFor="name">Name</Label><Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Turnover clean" required /></div>
+          <div className="space-y-1.5"><Label htmlFor="description">Description</Label><Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" /></div>
+        </div>
+      </Section>
 
-      <ol className="space-y-3">
-        {items.map((it, i) => (
-          <li key={i} className="space-y-2 rounded-md border p-3" data-testid="item-row">
-            <div className="flex flex-wrap items-center gap-2">
-              <select aria-label="Item type" className="rounded-md border bg-background px-2 py-1 text-sm" value={it.type}
-                onChange={(e) => update(i, { ...blank(e.target.value as Item["type"]), label: it.label, required: it.required })}>
-                {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-              <Input aria-label="Item label" placeholder="Label" value={it.label} onChange={(e) => update(i, { label: e.target.value })} className="min-w-40 flex-1" required />
-              <label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={it.required} onChange={(e) => update(i, { required: e.target.checked })} /> Required</label>
-              <div className="ml-auto flex gap-1">
-                <Button type="button" variant="ghost" size="sm" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>↑</Button>
-                <Button type="button" variant="ghost" size="sm" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === items.length - 1}>↓</Button>
-                <Button type="button" variant="ghost" size="sm" aria-label="Remove item" onClick={() => remove(i)}>✕</Button>
+      <Section title="Items" description="Workers see these in this order.">
+        <ol className="space-y-3">
+          {items.map((it, i) => (
+            <li key={i} className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-border" data-testid="item-row">
+              <div className="flex items-start gap-2">
+                <span className="mt-2.5 w-5 shrink-0 text-right text-sm text-muted-foreground tabular-nums">{i + 1}</span>
+                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[8.5rem_1fr]">
+                  <Select aria-label="Item type" value={it.type}
+                    onChange={(e) => update(i, { ...blank(e.target.value as Item["type"]), label: it.label, required: it.required })}>
+                    {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </Select>
+                  <Input aria-label="Item label" placeholder="What needs doing?" value={it.label} onChange={(e) => update(i, { label: e.target.value })} required />
+                </div>
               </div>
-            </div>
-            {it.type === "SELECT" && (
-              <textarea aria-label="Options, one per line" className="w-full rounded-md border bg-background p-2 text-sm" rows={3} placeholder="One option per line"
-                value={it.options.join("\n")} onChange={(e) => update(i, { options: e.target.value.split("\n") })} />
-            )}
-            {it.type === "NUMBER" && (
-              <div className="flex gap-2">
-                <Input aria-label="Min" type="number" placeholder="Min" value={it.min ?? ""} onChange={(e) => update(i, { min: e.target.value === "" ? null : Number(e.target.value) })} className="w-28" />
-                <Input aria-label="Max" type="number" placeholder="Max" value={it.max ?? ""} onChange={(e) => update(i, { max: e.target.value === "" ? null : Number(e.target.value) })} className="w-28" />
+              {it.type === "SELECT" && (
+                <Textarea aria-label="Options, one per line" className="ml-7 w-auto" rows={3} placeholder="One option per line"
+                  value={it.options.join("\n")} onChange={(e) => update(i, { options: e.target.value.split("\n") })} />
+              )}
+              {it.type === "NUMBER" && (
+                <div className="ml-7 flex gap-2">
+                  <Input aria-label="Min" type="number" inputMode="decimal" placeholder="Min" value={it.min ?? ""} onChange={(e) => update(i, { min: e.target.value === "" ? null : Number(e.target.value) })} className="w-28" />
+                  <Input aria-label="Max" type="number" inputMode="decimal" placeholder="Max" value={it.max ?? ""} onChange={(e) => update(i, { max: e.target.value === "" ? null : Number(e.target.value) })} className="w-28" />
+                </div>
+              )}
+              <div className="ml-7 flex items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={it.required} onChange={(e) => update(i, { required: e.target.checked })} /> Required</label>
+                <div className="flex gap-1">
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0}><ArrowUp /></Button>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === items.length - 1}><ArrowDown /></Button>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove item" onClick={() => remove(i)} disabled={items.length === 1}><X /></Button>
+                </div>
               </div>
-            )}
-          </li>
-        ))}
-      </ol>
-
-      <div className="flex flex-wrap gap-2">
-        {TYPES.map((t) => (
-          <Button key={t.value} type="button" variant="outline" size="sm" onClick={() => setItems((xs) => [...xs, blank(t.value)])}>+ {t.label}</Button>
-        ))}
-      </div>
+            </li>
+          ))}
+        </ol>
+        <div className="flex flex-wrap gap-2">
+          {TYPES.map((t) => (
+            <Button key={t.value} type="button" variant="outline" size="sm" onClick={() => setItems((xs) => [...xs, blank(t.value)])}><Plus aria-hidden /> {t.label}</Button>
+          ))}
+        </div>
+      </Section>
 
       <FormError message={error} />
-      {saved && template && <p className="text-sm text-muted-foreground">Saved.</p>}
-      <div className="max-w-xs"><SubmitButton pending={pending}>{template ? "Save" : "Create template"}</SubmitButton></div>
+      {saved && template && <FormSuccess message="Template saved" />}
+      <SubmitButton pending={pending}>{template ? "Save template" : "Create template"}</SubmitButton>
     </form>
   );
 }

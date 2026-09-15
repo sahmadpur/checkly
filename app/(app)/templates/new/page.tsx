@@ -1,6 +1,7 @@
 import { requireUser, requireOrgRole } from "@/lib/auth/guard";
 import { AppError } from "@/lib/errors";
 import { Forbidden } from "@/components/forbidden";
+import { PageHeader } from "@/components/page-header";
 import { TemplateBuilder } from "../template-builder";
 
 export default async function NewTemplatePage() {
@@ -11,8 +12,8 @@ export default async function NewTemplatePage() {
     throw e;
   }
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">New template</h1>
+    <div className="space-y-6">
+      <PageHeader title="New template" back={{ href: "/templates", label: "Templates" }} />
       <TemplateBuilder />
     </div>
   );

@@ -37,6 +37,7 @@ pnpm db:push:test               # applies the schema to checkly_test so tests ca
 pnpm db:seed
 pnpm storage:init               # creates the MinIO bucket
 pnpm push:keys                  # prints VAPID keys; paste them into .env (see Push notifications)
+pnpm icons                      # only after editing app/icon.svg: regenerates the PNG app icons
 pnpm dev
 ```
 
@@ -48,7 +49,7 @@ curl -X POST -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/c
 
 ### Stack
 
-Next.js 16 (App Router, React 19), Prisma 7 with the pg driver adapter, Postgres, Auth.js v5 (credentials, JWT sessions), zod 4, Tailwind 4 with shadcn (Base UI), Serwist for the service worker, S3-compatible storage (MinIO in dev), Resend for email, web-push, Vitest, Playwright.
+Next.js 16 (App Router, React 19), Prisma 7 with the pg driver adapter, Postgres, Auth.js v5 (credentials, JWT sessions), zod 4, Tailwind 4 with shadcn (Base UI) and lucide icons, Serwist for the service worker, S3-compatible storage (MinIO in dev), Resend for email, web-push, Vitest, Playwright.
 
 Things that differ from older tutorials:
 
