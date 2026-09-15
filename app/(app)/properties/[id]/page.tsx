@@ -7,6 +7,8 @@ import { listForProperty } from "@/lib/services/instance";
 import { listTemplates } from "@/lib/services/template";
 import { listSchedules } from "@/lib/services/schedule";
 import { AppError } from "@/lib/errors";
+import { PageHeader } from "@/components/page-header";
+import { Section } from "@/components/section";
 import { PropertyForm } from "../new/property-form";
 import { PropertyMembers } from "./members";
 import { PropertyChecklists } from "./checklists";
@@ -38,15 +40,16 @@ export default async function PropertyPage({ params, searchParams }: { params: P
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold">{property.name}</h1>
-        <p className="text-sm text-muted-foreground">{property.address ?? "No address"}</p>
-      </div>
-      {canEdit && <PropertyForm property={property} />}
-      <PropertyMembers propertyId={property.id} members={property.members} candidates={candidates} canEdit={canEdit} />
+      <PageHeader title={property.name} back={{ href: "/", label: "Properties" }} description={property.address ?? "No address"} />
       <PropertyChecklists propertyId={property.id} instances={instances} filter={filter} />
-      {canEdit && <PropertySchedules propertyId={property.id} schedules={schedules} />}
       {canEdit && <AssignForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} />}
+      {canEdit && <PropertySchedules propertyId={property.id} schedules={schedules} />}
+      <PropertyMembers propertyId={property.id} members={property.members} candidates={candidates} canEdit={canEdit} />
+      {canEdit && (
+        <Section title="Details" card>
+          <PropertyForm property={property} />
+        </Section>
+      )}
       {canEdit && <DeleteProperty id={property.id} name={property.name} />}
     </div>
   );

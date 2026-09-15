@@ -1,15 +1,26 @@
 import type { InstanceStatus } from "@prisma/client";
 
-const STYLES: Record<InstanceStatus | "OVERDUE", string> = {
+type Key = InstanceStatus | "OVERDUE";
+const STYLES: Record<Key, string> = {
   OPEN: "bg-muted text-foreground",
-  OVERDUE: "bg-destructive/15 text-destructive",
-  SUBMITTED: "bg-blue-100 text-blue-900",
-  APPROVED: "bg-green-100 text-green-900",
-  REJECTED: "bg-amber-100 text-amber-900",
+  OVERDUE: "bg-destructive/10 text-destructive",
+  SUBMITTED: "bg-info/10 text-info-foreground",
+  APPROVED: "bg-success/10 text-success-foreground",
+  REJECTED: "bg-warning/15 text-warning-foreground",
 };
-const LABELS: Record<InstanceStatus | "OVERDUE", string> = { OPEN: "Open", OVERDUE: "Overdue", SUBMITTED: "Submitted", APPROVED: "Approved", REJECTED: "Needs rework" };
+/** Left-edge stripe colour for list rows, matching the badge. Open rows get no stripe: nothing to shout about. */
+export const STATUS_RAIL: Record<Key, string | undefined> = {
+  OPEN: undefined,
+  OVERDUE: "bg-destructive",
+  SUBMITTED: "bg-info",
+  APPROVED: "bg-success",
+  REJECTED: "bg-warning",
+};
+const LABELS: Record<Key, string> = { OPEN: "Open", OVERDUE: "Overdue", SUBMITTED: "Submitted", APPROVED: "Approved", REJECTED: "Needs rework" };
+
+export const statusKey = (status: InstanceStatus, overdue: boolean): Key => (overdue ? "OVERDUE" : status);
 
 export function StatusBadge({ status, overdue }: { status: InstanceStatus; overdue: boolean }) {
-  const key = overdue ? "OVERDUE" : status;
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STYLES[key]}`}>{LABELS[key]}</span>;
+  const key = statusKey(status, overdue);
+  return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STYLES[key]}`}>{LABELS[key]}</span>;
 }

@@ -26,7 +26,7 @@ export function ResetForm({ token }: { token: string }) {
         <Input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" />
       </div>
       <FormError message={error} />
-      <SubmitButton pending={pending}>Set password</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">Set password</SubmitButton>
     </form>
   );
 }

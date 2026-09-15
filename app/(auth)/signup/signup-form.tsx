@@ -43,13 +43,13 @@ export function SignupForm() {
       {field("orgName", "Organization name", { required: true })}
       {field("name", "Your name", { required: true, autoComplete: "name" })}
       {field("email", "Email", { type: "email", required: true, autoComplete: "email" })}
-      {field("phone", "Phone (optional, with country code)", { type: "tel", placeholder: "+1 415 555 2671", autoComplete: "tel" })}
+      {field("phone", "Phone (optional)", { type: "tel", placeholder: "+1 415 555 2671", autoComplete: "tel" })}
       {field("password", "Password (8+ characters)", { type: "password", required: true, minLength: 8, autoComplete: "new-password" })}
       <input type="hidden" name="timezone" value={tz} readOnly />
       <FormError message={error} />
-      <SubmitButton pending={pending}>Create account</SubmitButton>
-      <p className="text-center text-sm text-muted-foreground">
-        Already have an account? <Link href="/login" className="underline">Sign in</Link>
+      <SubmitButton pending={pending} className="w-full">Create organization</SubmitButton>
+      <p className="pt-2 text-center text-sm text-muted-foreground">
+        Already have an account? <Link href="/login" className="font-medium text-primary underline underline-offset-4">Sign in</Link>
       </p>
     </form>
   );

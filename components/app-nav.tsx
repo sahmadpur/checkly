@@ -1,36 +1,52 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Building2, LayoutTemplate, LogOut, Settings, Sun, Users, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { Role } from "@prisma/client";
+import { Wordmark } from "@/components/brand";
+import { cn } from "cn";
 
-const items = (role: Role) => [
-  ...(role === "WORKER" ? [{ href: "/today", label: "Today" }] : []),
-  { href: "/", label: "Properties" },
-  ...(role !== "WORKER" ? [{ href: "/templates", label: "Templates" }, { href: "/team", label: "Team" }] : []),
-  { href: "/settings", label: "Settings" },
+type Item = { href: string; label: string; icon: LucideIcon };
+const items = (role: Role): Item[] => [
+  ...(role === "WORKER" ? [{ href: "/today", label: "Today", icon: Sun }] : []),
+  { href: "/", label: "Properties", icon: Building2 },
+  ...(role !== "WORKER" ? [{ href: "/templates", label: "Templates", icon: LayoutTemplate }, { href: "/team", label: "Team", icon: Users }] : []),
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppNav({ role }: { role: Role }) {
   const path = usePathname();
-  const links = items(role).map((i) => {
-    const active = i.href === "/" ? path === "/" || path.startsWith("/properties") : path.startsWith(i.href);
-    return (
-      <Link key={i.href} href={i.href}
-        className={`rounded-md px-3 py-2 text-sm ${active ? "bg-accent font-medium" : "text-muted-foreground"}`}>
-        {i.label}
-      </Link>
-    );
-  });
+  const isActive = (href: string) => (href === "/" ? path === "/" || path.startsWith("/properties") || path.startsWith("/checklists") || path.startsWith("/schedules") : path.startsWith(href));
+  const links = items(role);
   return (
     <>
-      <aside className="hidden w-56 shrink-0 flex-col gap-1 border-r p-3 md:flex">
-        <div className="mb-3 px-3 text-lg font-semibold">Checkly</div>
-        {links}
-        <form action={logoutAction} className="mt-auto"><button className="px-3 py-2 text-sm text-muted-foreground">Sign out</button></form>
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-1 border-r bg-sidebar p-4 md:flex">
+        <Link href={role === "WORKER" ? "/today" : "/"} className="mb-6 px-2"><Wordmark /></Link>
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link key={href} href={href} aria-current={active ? "page" : undefined}
+              className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+              <Icon className="size-5" aria-hidden /> {label}
+            </Link>
+          );
+        })}
+        <form action={logoutAction} className="mt-auto">
+          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><LogOut className="size-5" aria-hidden /> Sign out</button>
+        </form>
       </aside>
-      <nav className="fixed inset-x-0 bottom-0 flex justify-around border-t bg-background p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-        {links}
+      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 flex border-t bg-card/95 px-2 pt-1 pb-safe backdrop-blur md:hidden">
+        {links.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link key={href} href={href} aria-current={active ? "page" : undefined}
+              className={cn("flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
+              <Icon className={cn("size-6", active && "fill-primary/15")} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+              <span className="truncate">{label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );

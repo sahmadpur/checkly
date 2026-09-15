@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/guard";
@@ -8,6 +7,7 @@ import { getProperty } from "@/lib/services/property";
 import { listTemplates } from "@/lib/services/template";
 import { AppError } from "@/lib/errors";
 import { Forbidden } from "@/components/forbidden";
+import { PageHeader } from "@/components/page-header";
 import { ScheduleForm } from "../schedule-form";
 import { ScheduleControls } from "./schedule-controls";
 
@@ -27,12 +27,10 @@ export default async function SchedulePage({ params }: { params: Promise<{ id: s
   ]);
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground"><Link href={`/properties/${s.propertyId}`} className="underline">{property.name}</Link></p>
-        <h1 className="text-xl font-semibold">{s.name}{s.pausedAt ? " (paused)" : ""}</h1>
-        <p className="text-sm text-muted-foreground">{s.description}</p>
-      </div>
-      <ScheduleControls id={s.id} paused={!!s.pausedAt} />
+      <PageHeader title={<>{s.name}{s.pausedAt && <span className="ml-3 align-middle rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Paused</span>}</>}
+        back={{ href: `/properties/${s.propertyId}`, label: property.name }} description={`${s.description} · ${org.timezone}`}>
+        <ScheduleControls id={s.id} paused={!!s.pausedAt} />
+      </PageHeader>
       <ScheduleForm propertyId={s.propertyId} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))}
         todayYmd={todayYmd(org.timezone)} templateArchived={s.templateArchived}
         schedule={{ id: s.id, templateId: s.templateId, assigneeIds: s.assignees.map((a) => a.userId), freq: s.freq, daysOfWeek: s.daysOfWeek, dayOfMonth: s.dayOfMonth, dueTime: s.dueTime, startsOn: s.startsOn, endsOn: s.endsOn }} />

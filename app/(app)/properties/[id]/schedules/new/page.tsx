@@ -6,6 +6,7 @@ import { getProperty } from "@/lib/services/property";
 import { listTemplates } from "@/lib/services/template";
 import { AppError } from "@/lib/errors";
 import { Forbidden } from "@/components/forbidden";
+import { PageHeader } from "@/components/page-header";
 import { ScheduleForm } from "@/app/(app)/schedules/schedule-form";
 
 export default async function NewSchedulePage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,8 @@ export default async function NewSchedulePage({ params }: { params: Promise<{ id
   try { property = await getProperty(ctx, id); } catch (e) { if (e instanceof AppError && e.code === "NOT_FOUND") notFound(); throw e; }
   const [templates, org] = await Promise.all([listTemplates(ctx), db.org.findUniqueOrThrow({ where: { id: ctx.orgId }, select: { timezone: true } })]);
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">New schedule · {property.name}</h1>
+    <div className="space-y-6">
+      <PageHeader title="New schedule" back={{ href: `/properties/${property.id}`, label: property.name }} description={`Due times are in ${org.timezone}.`} />
       <ScheduleForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} todayYmd={todayYmd(org.timezone)} />
     </div>
   );

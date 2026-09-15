@@ -25,7 +25,7 @@ export function InstallBanner() {
   const dismiss = () => { try { localStorage.setItem(KEY, "1"); } catch {} setEvt(null); setIos(false); };
 
   return (
-    <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-md border bg-accent/40 p-3 text-sm md:hidden">
+    <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-accent px-4 py-3 text-sm text-accent-foreground md:hidden">
       <span>{ios ? "Install: tap Share, then “Add to Home Screen”." : "Install Checkly for quick access."}</span>
       <div className="flex gap-2">
         {evt && <Button size="sm" onClick={async () => { await evt.prompt(); dismiss(); }}>Install</Button>}

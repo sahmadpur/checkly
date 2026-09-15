@@ -2,7 +2,10 @@
 import { useState, useTransition } from "react";
 import { addPropertyMemberAction, removePropertyMemberAction } from "@/actions/property";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { FormError } from "@/components/form-error";
+import { List, ListEmpty, ListRow } from "@/components/ui/list";
+import { Section } from "@/components/section";
 
 type Member = { userId: string; name: string; email: string | null; phone: string | null };
 type Candidate = { userId: string; name: string };
@@ -16,28 +19,27 @@ export function PropertyMembers({ propertyId, members, candidates, canEdit }: {
     start(async () => { const r = await fn(); if (!r.ok) setError(r.error ?? "Failed"); });
 
   return (
-    <section className="space-y-3">
-      <h2 className="font-medium">Members</h2>
-      <ul className="divide-y rounded-md border">
-        {members.length === 0 && <li className="p-3 text-sm text-muted-foreground">Nobody assigned yet.</li>}
+    <Section title="Members" description={canEdit ? "Only members can be assigned work here." : undefined}
+      actions={canEdit && candidates.length > 0 && (
+        <Select aria-label="Add member" className="w-44 [&>select]:h-9" disabled={pending} value=""
+          onChange={(e) => e.target.value && act(() => addPropertyMemberAction(propertyId, e.target.value))}>
+          <option value="">Add a member…</option>
+          {candidates.map((c) => <option key={c.userId} value={c.userId}>{c.name}</option>)}
+        </Select>
+      )}>
+      <List>
+        {members.length === 0 && <ListEmpty>Nobody works here yet.</ListEmpty>}
         {members.map((m) => (
-          <li key={m.userId} className="flex items-center justify-between p-3 text-sm">
-            <span>{m.name} <span className="text-muted-foreground">{m.email ?? m.phone}</span></span>
+          <ListRow key={m.userId}>
+            <span className="min-w-0 flex-1 truncate"><span className="font-medium">{m.name}</span> <span className="text-muted-foreground">{m.email ?? m.phone}</span></span>
             {canEdit && (
               <Button variant="ghost" size="sm" disabled={pending}
                 onClick={() => act(() => removePropertyMemberAction(propertyId, m.userId))}>Remove</Button>
             )}
-          </li>
+          </ListRow>
         ))}
-      </ul>
-      {canEdit && candidates.length > 0 && (
-        <select aria-label="Add member" className="rounded-md border bg-background px-2 py-1 text-sm" disabled={pending} value=""
-          onChange={(e) => e.target.value && act(() => addPropertyMemberAction(propertyId, e.target.value))}>
-          <option value="">Add a member…</option>
-          {candidates.map((c) => <option key={c.userId} value={c.userId}>{c.name}</option>)}
-        </select>
-      )}
+      </List>
       <FormError message={error} />
-    </section>
+    </Section>
   );
 }

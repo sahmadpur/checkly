@@ -2,6 +2,7 @@ import { requireUser, requireOrgRole } from "@/lib/auth/guard";
 import { db } from "@/lib/db";
 import { TIMEZONES } from "@/lib/timezones";
 import { getPreferences } from "@/lib/services/notification";
+import { PageHeader } from "@/components/page-header";
 import { OrgForm } from "./org-form";
 import { PasswordForm } from "./password-form";
 import { ProfileForm } from "./profile-form";
@@ -16,13 +17,11 @@ export default async function SettingsPage() {
   const prefs = await getPreferences(ctx);
   return (
     <div className="space-y-8">
-      <h1 className="text-xl font-semibold">Settings</h1>
+      <PageHeader title="Settings" />
       <ProfileForm name={user.name} phone={user.phone} />
-      {role === "OWNER" && <OrgForm name={org.name} />}
-      {role === "OWNER" && (
-        <TimezoneForm timezone={org.timezone} options={TIMEZONES} unset={org.timezone === "UTC"} />
-      )}
       <NotificationPrefs notifyPush={prefs.notifyPush} notifyEmail={prefs.notifyEmail} hasEmail={!!user.email} vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
+      {role === "OWNER" && <OrgForm name={org.name} />}
+      {role === "OWNER" && <TimezoneForm timezone={org.timezone} options={TIMEZONES} unset={org.timezone === "UTC"} />}
       <PasswordForm />
     </div>
   );

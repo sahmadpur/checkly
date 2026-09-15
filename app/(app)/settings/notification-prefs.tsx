@@ -3,6 +3,8 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 import { deletePushSubscriptionAction, savePushSubscriptionAction, setPreferencesAction } from "@/actions/notification";
 import { currentPushSubscription, pushSupported, subscribeToPush } from "@/lib/client/push";
 import { FormError } from "@/components/form-error";
+import { Button } from "@/components/ui/button";
+import { Section } from "@/components/section";
 
 const noop = () => () => {};
 
@@ -37,16 +39,17 @@ export function NotificationPrefs({ notifyPush, notifyEmail, hasEmail, vapidKey 
   const setPref = (p: { notifyPush?: boolean; notifyEmail?: boolean }) => start(async () => { const r = await setPreferencesAction(p); if (!r.ok) setError(r.error); });
 
   return (
-    <section className="max-w-md space-y-3">
-      <h2 className="font-medium">Notifications</h2>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked={notifyPush} disabled={pending} onChange={(e) => setPref({ notifyPush: e.target.checked })} /> Push notifications</label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked={notifyEmail} disabled={pending || !hasEmail} onChange={(e) => setPref({ notifyEmail: e.target.checked })} /> Email notifications{!hasEmail && <span className="text-muted-foreground"> (no email on your profile)</span>}</label>
-      {supported ? (
-        <button type="button" disabled={pending || deviceSubscribed === null} onClick={toggleDevice} className="rounded-md border px-3 py-2 text-sm">
-          {deviceSubscribed ? "Disable push on this device" : "Enable push on this device"}
-        </button>
-      ) : <p className="text-sm text-muted-foreground">Push is unavailable in this browser. On iPhone, install the app to the Home Screen first.</p>}
-      <FormError message={error} />
-    </section>
+    <Section title="Notifications" description="How Checkly reaches you when something is assigned, due or reviewed." card>
+      <div className="space-y-4">
+        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyPush} disabled={pending} onChange={(e) => setPref({ notifyPush: e.target.checked })} /> Push notifications</label>
+        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyEmail} disabled={pending || !hasEmail} onChange={(e) => setPref({ notifyEmail: e.target.checked })} /> Email notifications{!hasEmail && <span className="text-muted-foreground">(add an email to your profile first)</span>}</label>
+        {supported ? (
+          <Button type="button" variant="outline" disabled={pending || deviceSubscribed === null} onClick={toggleDevice}>
+            {deviceSubscribed ? "Turn off push on this device" : "Turn on push on this device"}
+          </Button>
+        ) : <p className="text-sm text-muted-foreground">Push isn&apos;t available in this browser. On iPhone, add Checkly to the Home Screen first.</p>}
+        <FormError message={error} />
+      </div>
+    </Section>
   );
 }
