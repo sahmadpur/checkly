@@ -35,7 +35,10 @@ export function NotificationPrefs({ notifyPush, notifyEmail, hasEmail, vapidKey 
         if (!r.ok) throw new Error(r.error);
         setDeviceSubscribed(true);
       }
-    } catch (e) { setError(e instanceof Error ? e.message : t("failed")); }
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "";
+      setError(m === "pushUnsupported" || m === "pushDenied" ? t(m) : m || t("failed"));
+    }
   });
 
   const setPref = (p: { notifyPush?: boolean; notifyEmail?: boolean }) => start(async () => { const r = await setPreferencesAction(p); if (!r.ok) setError(r.error); });

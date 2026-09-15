@@ -1,6 +1,10 @@
 {
   "title": "Settings",
-  "language": { "title": "Language", "description": "Used for the app, emails and notifications.", "label": "Language" },
+  "language": {
+    "title": "Language",
+    "description": "Used for the app, emails and notifications.",
+    "label": "Language"
+  },
   "profile": {
     "title": "Profile",
     "name": "Name",
@@ -40,6 +44,8 @@
     "deviceOff": "Turn off push on this device",
     "deviceOn": "Turn on push on this device",
     "unsupported": "Push isn't available in this browser. On iPhone, add Checkly to the Home Screen first.",
-    "failed": "Failed"
+    "failed": "Failed",
+    "pushUnsupported": "Push is not supported in this browser",
+    "pushDenied": "Notification permission was not granted"
   }
 }

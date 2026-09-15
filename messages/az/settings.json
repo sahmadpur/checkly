@@ -1,6 +1,10 @@
 {
   "title": "Tənzimləmələr",
-  "language": { "title": "Dil", "description": "Tətbiq, e-poçt və bildirişlər üçün istifadə olunur.", "label": "Dil" },
+  "language": {
+    "title": "Dil",
+    "description": "Tətbiq, e-poçt və bildirişlər üçün istifadə olunur.",
+    "label": "Dil"
+  },
   "profile": {
     "title": "Profil",
     "name": "Ad",
@@ -40,6 +44,8 @@
     "deviceOff": "Bu cihazda push-u söndür",
     "deviceOn": "Bu cihazda push-u yandır",
     "unsupported": "Bu brauzerdə push mövcud deyil. iPhone-da əvvəlcə Checkly-ni Əsas ekrana əlavə edin.",
-    "failed": "Alınmadı"
+    "failed": "Alınmadı",
+    "pushUnsupported": "Bu brauzer push bildirişləri dəstəkləmir",
+    "pushDenied": "Bildiriş icazəsi verilmədi"
   }
 }
