@@ -46,7 +46,7 @@ jobs:
             -e MINIO_ROOT_USER=minio \
             -e MINIO_ROOT_PASSWORD=minio12345 \
             -e MINIO_API_CORS_ALLOW_ORIGIN='*' \
-            minio/minio server /data
+            quay.io/minio/minio server /data
           timeout 30 sh -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 1; done'
       # Every key already exists in .env.example, so fill them in place: appending
       # instead would leave two lines per key (last one wins, but it is a trap).
