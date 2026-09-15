@@ -26,6 +26,6 @@ export async function renameOrg(ctx: Ctx, name: string) {
 
 export async function setTimezone(ctx: Ctx, timezone: string) {
   await requireOrgRole(ctx, "OWNER");
-  if (!isValidTimezone(timezone)) throw invalid("Unknown timezone");
+  if (!isValidTimezone(timezone)) throw invalid("unknownTimezone");
   await db.org.update({ where: { id: ctx.orgId }, data: { timezone } });
 }

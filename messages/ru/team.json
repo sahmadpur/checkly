@@ -1,0 +1,24 @@
+{
+  "title": "Команда",
+  "memberCount": "{count, plural, one {# участник} few {# участника} many {# участников} other {# участника}}",
+  "members": "Участники",
+  "pending": "Ожидающие приглашения",
+  "invite": {
+    "title": "Пригласить",
+    "description": "Они получат письмо со ссылкой для вступления.",
+    "email": "Эл. почта",
+    "role": "Роль",
+    "properties": "Объекты, где они работают",
+    "noProperties": "Объектов пока нет. Добавить к объектам можно позже.",
+    "sent": "Приглашение отправлено.",
+    "submit": "Отправить приглашение"
+  },
+  "inviteRow": { "expires": "{role} · истекает {date}", "revoke": "Отозвать" },
+  "memberRow": {
+    "you": "(вы)",
+    "properties": "{count, plural, one {# объект} few {# объекта} many {# объектов} other {# объекта}}",
+    "roleFor": "Роль для {name}",
+    "removeConfirm": "Убрать {name} из организации?",
+    "remove": "Убрать"
+  }
+}

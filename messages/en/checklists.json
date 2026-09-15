@@ -1,0 +1,64 @@
+{
+  "today": {
+    "title": "Today",
+    "empty": "Nothing on your list",
+    "emptyHint": "Checklists assigned to you will show up here.",
+    "overdue": "Overdue",
+    "rework": "Needs rework",
+    "dueToday": "Due today",
+    "upcoming": "Upcoming",
+    "done": "Done"
+  },
+  "list": {
+    "title": "Checklists",
+    "description": "Everything assigned across your properties. Open one to see the answers.",
+    "empty": "No checklists yet. Assign one below.",
+    "filterLabel": "Filter by status",
+    "filter": { "all": "All", "OPEN": "Open", "OVERDUE": "Overdue", "SUBMITTED": "Submitted", "APPROVED": "Approved", "REJECTED": "Rejected" },
+    "emptyFiltered": "Nothing with this status."
+  },
+  "detail": {
+    "due": "Due",
+    "fromSchedule": "from schedule {name}",
+    "sentBack": "Sent back",
+    "sentBackBy": "Sent back by {name}",
+    "reviewerNote": "Reviewer note: {comment}",
+    "notAnswered": "Not answered",
+    "done": "Done",
+    "photoUnavailable": "Photo unavailable",
+    "videoUnavailable": "Video unavailable",
+    "downloadVideo": "Download video"
+  },
+  "fill": {
+    "saving": "Saving…",
+    "saved": "Saved",
+    "required": "Required",
+    "optional": "Optional",
+    "done": "Done",
+    "markDone": "Mark done",
+    "textPlaceholder": "Type your answer",
+    "range": "{min} to {max}",
+    "choose": "Choose…",
+    "progress": "{done} of {total} required done",
+    "submit": "Submit"
+  },
+  "review": {
+    "title": "Review",
+    "description": "Rejecting sends it back to the same worker with your comment.",
+    "commentLabel": "Review comment",
+    "commentPlaceholder": "Comment (required when rejecting)",
+    "approve": "Approve",
+    "reject": "Reject"
+  },
+  "media": {
+    "unsupportedType": "Unsupported file type {type}",
+    "unknownType": "(unknown)",
+    "tooLarge": "File is too large (max {mb} MB)",
+    "uploadFailed": "Upload failed",
+    "uploading": "Uploading {percent}%",
+    "retakePhoto": "Retake photo",
+    "recordAgain": "Record again",
+    "takePhoto": "Take photo",
+    "recordVideo": "Record video"
+  }
+}

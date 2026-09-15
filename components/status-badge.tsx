@@ -1,4 +1,5 @@
 import type { InstanceStatus } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 type Key = InstanceStatus | "OVERDUE";
 const STYLES: Record<Key, string> = {
@@ -16,11 +17,10 @@ export const STATUS_RAIL: Record<Key, string | undefined> = {
   APPROVED: "bg-success",
   REJECTED: "bg-warning",
 };
-const LABELS: Record<Key, string> = { OPEN: "Open", OVERDUE: "Overdue", SUBMITTED: "Submitted", APPROVED: "Approved", REJECTED: "Needs rework" };
-
 export const statusKey = (status: InstanceStatus, overdue: boolean): Key => (overdue ? "OVERDUE" : status);
 
 export function StatusBadge({ status, overdue }: { status: InstanceStatus; overdue: boolean }) {
+  const te = useTranslations("enums");
   const key = statusKey(status, overdue);
-  return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STYLES[key]}`}>{LABELS[key]}</span>;
+  return <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STYLES[key]}`}>{te(`status.${key}`)}</span>;
 }

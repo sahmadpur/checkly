@@ -1,0 +1,51 @@
+{
+  "title": "Tənzimləmələr",
+  "language": {
+    "title": "Dil",
+    "description": "Tətbiq, e-poçt və bildirişlər üçün istifadə olunur.",
+    "label": "Dil"
+  },
+  "profile": {
+    "title": "Profil",
+    "name": "Ad",
+    "phone": "Telefon",
+    "phonePlaceholder": "+994 50 123 45 67",
+    "saved": "Profil yadda saxlanıldı",
+    "submit": "Profili yadda saxla"
+  },
+  "password": {
+    "title": "Şifrə",
+    "current": "Cari şifrə",
+    "next": "Yeni şifrə",
+    "placeholder": "Ən azı 8 simvol",
+    "saved": "Şifrə yeniləndi",
+    "submit": "Şifrəni yenilə"
+  },
+  "org": {
+    "title": "Təşkilat",
+    "name": "Ad",
+    "saved": "Ad yadda saxlanıldı",
+    "submit": "Adı yadda saxla"
+  },
+  "timezone": {
+    "title": "Saat qurşağı",
+    "description": "Cədvəllərin son tarixləri bu saat qurşağında oxunur.",
+    "unset": "Hələ də UTC olaraq qalır. Əmlaklarınızın yerləşdiyi saat qurşağını təsdiqləyin.",
+    "label": "Təşkilatın saat qurşağı",
+    "saved": "Saat qurşağı yadda saxlanıldı",
+    "submit": "Saat qurşağını yadda saxla"
+  },
+  "notifications": {
+    "title": "Bildirişlər",
+    "description": "Nəsə təyin olunanda, vaxtı çatanda və ya yoxlananda Checkly sizə necə xəbər verir.",
+    "push": "Push bildirişləri",
+    "email": "E-poçt bildirişləri",
+    "emailHint": "(əvvəlcə profilinizə e-poçt əlavə edin)",
+    "deviceOff": "Bu cihazda push-u söndür",
+    "deviceOn": "Bu cihazda push-u yandır",
+    "unsupported": "Bu brauzerdə push mövcud deyil. iPhone-da əvvəlcə Checkly-ni Əsas ekrana əlavə edin.",
+    "failed": "Alınmadı",
+    "pushUnsupported": "Bu brauzer push bildirişləri dəstəkləmir",
+    "pushDenied": "Bildiriş icazəsi verilmədi"
+  }
+}

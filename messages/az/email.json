@@ -1,0 +1,5 @@
+{
+  "open": "Checkly-də aç",
+  "reset": { "subject": "Checkly parolunuzu sıfırlayın", "body": "Parolunuzu sıfırlamaq üçün klikləyin. Keçid 1 saat ərzində etibarlıdır." },
+  "invite": { "subject": "Sizi Checkly-də {org} təşkilatına dəvət edirlər", "body": "Sizi <b>{org}</b> təşkilatına {role} kimi qoşulmağa dəvət ediblər.", "expires": "Bu keçid 7 gün ərzində etibarlıdır." }
+}

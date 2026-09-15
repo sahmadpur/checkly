@@ -34,6 +34,7 @@ model User {
   name                String
   notifyPush          Boolean              @default(true)
   notifyEmail         Boolean              @default(true)
+  locale              String?
   createdAt           DateTime             @default(now())
   orgMemberships      OrgMember[]
   propertyMembers     PropertyMember[]
@@ -291,9 +292,10 @@ model Notification {
   userId      String
   type        NotificationType
   instanceId  String?
-  title       String
-  body        String
+  title       String?
+  body        String?
   url         String
+  params      Json?
   createdAt   DateTime          @default(now())
   readAt      DateTime?
   pushSentAt  DateTime?

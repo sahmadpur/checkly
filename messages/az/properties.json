@@ -1,0 +1,64 @@
+{
+  "index": {
+    "title": "Obyektlər",
+    "new": "Yeni obyekt",
+    "emptyManagerTitle": "İlk obyektinizi əlavə edin",
+    "emptyManagerBody": "Hər obyektin öz üzvləri, yoxlama siyahıları və cədvəlləri olur.",
+    "emptyWorkerTitle": "Sizə hələ obyekt təyin edilməyib",
+    "emptyWorkerBody": "Menecer sizi obyektə əlavə etdikdən sonra işlər burada görünəcək.",
+    "noAddress": "Ünvan yoxdur",
+    "members": "{count, plural, other {# üzv}}",
+    "open": "{count} açıq",
+    "overdue": "{count} gecikmiş"
+  },
+  "form": {
+    "name": "Ad",
+    "namePlaceholder": "Villa Azul",
+    "address": "Ünvan",
+    "addressPlaceholder": "İstəyə bağlı",
+    "saved": "Obyekt yadda saxlanıldı",
+    "save": "Məlumatları saxla",
+    "create": "Obyekt yarat"
+  },
+  "detail": { "details": "Məlumatlar" },
+  "checklists": { "title": "Yoxlama siyahıları", "empty": "Hələ yoxlama siyahısı yoxdur. Aşağıda birini təyin edin və ya cədvəl qurun." },
+  "assign": {
+    "title": "Yoxlama siyahısı təyin et",
+    "description": "Hər işçi öz nüsxəsini alır.",
+    "noTemplates": "Əvvəlcə şablon yaradın.",
+    "noProperties": "Əvvəlcə obyekt yaradın.",
+    "property": "Obyekt",
+    "template": "Şablon",
+    "due": "Son tarix",
+    "workers": "İşçilər",
+    "noWorkers": "Əvvəlcə bu obyektə üzv əlavə edin.",
+    "submit": "Təyin et"
+  },
+  "assigned": "{count, plural, other {# işçiyə}} təyin edildi.",
+  "members": {
+    "title": "Üzvlər",
+    "description": "Burada yalnız üzvlərə iş təyin edilə bilər.",
+    "addLabel": "Üzv əlavə et",
+    "addPlaceholder": "Üzv əlavə et…",
+    "empty": "Burada hələ heç kim işləmir.",
+    "remove": "Sil",
+    "failed": "Alınmadı"
+  },
+  "schedules": {
+    "title": "Cədvəllər",
+    "new": "Yeni cədvəl",
+    "empty": "Cədvəl yoxdur. Yoxlama siyahısını gündəlik, həftəlik və ya aylıq təkrarlayın.",
+    "noWorkersInline": "işçi yoxdur",
+    "paused": "Dayandırılıb",
+    "noWorkers": "İşçi yoxdur",
+    "archivedTemplate": "Arxivlənmiş şablon",
+    "next": "növbəti",
+    "tz": "Son vaxtlar {tz} saat qurşağındadır."
+  },
+  "danger": {
+    "title": "Bu obyekti sil",
+    "body": "Yoxlama siyahıları və cədvəlləri də silinir. Bunu geri qaytarmaq mümkün deyil.",
+    "confirm": "\"{name}\" silinsin? Bunu geri qaytarmaq mümkün deyil.",
+    "button": "Obyekti sil"
+  }
+}

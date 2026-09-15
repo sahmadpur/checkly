@@ -1,0 +1,64 @@
+{
+  "today": {
+    "title": "Bu gün",
+    "empty": "Siyahınız boşdur",
+    "emptyHint": "Sizə təyin edilən yoxlama siyahıları burada görünəcək.",
+    "overdue": "Gecikmiş",
+    "rework": "Yenidən işlənməli",
+    "dueToday": "Bu gün üçün",
+    "upcoming": "Qarşıdakı",
+    "done": "Tamamlanıb"
+  },
+  "list": {
+    "title": "Yoxlama siyahıları",
+    "description": "Bütün obyektlər üzrə təyin edilənlər. Cavabları görmək üçün birini açın.",
+    "empty": "Hələ yoxlama siyahısı yoxdur. Aşağıdan birini təyin edin.",
+    "filterLabel": "Statusa görə süzgəc",
+    "filter": { "all": "Hamısı", "OPEN": "Açıq", "OVERDUE": "Gecikmiş", "SUBMITTED": "Göndərilib", "APPROVED": "Təsdiqlənib", "REJECTED": "Rədd edilib" },
+    "emptyFiltered": "Bu statusda heç nə yoxdur."
+  },
+  "detail": {
+    "due": "Son tarix",
+    "fromSchedule": "{name} cədvəlindən",
+    "sentBack": "Geri qaytarılıb",
+    "sentBackBy": "{name} tərəfindən geri qaytarılıb",
+    "reviewerNote": "Yoxlayanın qeydi: {comment}",
+    "notAnswered": "Cavablanmayıb",
+    "done": "Hazırdır",
+    "photoUnavailable": "Foto əlçatan deyil",
+    "videoUnavailable": "Video əlçatan deyil",
+    "downloadVideo": "Videonu yüklə"
+  },
+  "fill": {
+    "saving": "Yadda saxlanılır…",
+    "saved": "Yadda saxlanıldı",
+    "required": "Məcburi",
+    "optional": "İstəyə bağlı",
+    "done": "Hazırdır",
+    "markDone": "Hazır kimi qeyd et",
+    "textPlaceholder": "Cavabınızı yazın",
+    "range": "{min} – {max}",
+    "choose": "Seçin…",
+    "progress": "{total} məcburidən {done} hazırdır",
+    "submit": "Göndər"
+  },
+  "review": {
+    "title": "Yoxlama",
+    "description": "Rədd etsəniz, şərhinizlə birlikdə eyni işçiyə geri qaytarılır.",
+    "commentLabel": "Yoxlama şərhi",
+    "commentPlaceholder": "Şərh (rədd edərkən məcburidir)",
+    "approve": "Təsdiqlə",
+    "reject": "Rədd et"
+  },
+  "media": {
+    "unsupportedType": "Dəstəklənməyən fayl növü {type}",
+    "unknownType": "(naməlum)",
+    "tooLarge": "Fayl çox böyükdür (maks. {mb} MB)",
+    "uploadFailed": "Yükləmə alınmadı",
+    "uploading": "Yüklənir {percent}%",
+    "retakePhoto": "Yenidən çək",
+    "recordAgain": "Yenidən yaz",
+    "takePhoto": "Foto çək",
+    "recordVideo": "Video çək"
+  }
+}

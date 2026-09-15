@@ -2,6 +2,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BellOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { markAllReadAction, markReadAction } from "@/actions/notification";
 import { Button } from "@/components/ui/button";
 import { LocalTime } from "@/components/local-time";
@@ -12,17 +13,18 @@ import { cn } from "cn";
 type Row = { id: string; type: string; title: string; body: string; url: string; createdAt: string; readAt: string | null; createdLabel: string };
 
 export function NotificationList({ rows }: { rows: Row[] }) {
+  const t = useTranslations("notifications");
   const router = useRouter();
   const [pending, start] = useTransition();
   return (
     <div className="space-y-6">
-      <PageHeader title="Notifications">
-        <Button variant="outline" size="sm" disabled={pending || rows.every((r) => r.readAt)} onClick={() => start(async () => { await markAllReadAction(); router.refresh(); })}>Mark all read</Button>
+      <PageHeader title={t("title")}>
+        <Button variant="outline" size="sm" disabled={pending || rows.every((r) => r.readAt)} onClick={() => start(async () => { await markAllReadAction(); router.refresh(); })}>{t("markAllRead")}</Button>
       </PageHeader>
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed px-4 py-12 text-center">
           <BellOff className="mx-auto size-8 text-muted-foreground" aria-hidden />
-          <p className="mt-3 font-medium">You&apos;re all caught up</p>
+          <p className="mt-3 font-medium">{t("empty")}</p>
         </div>
       ) : (
         <List>

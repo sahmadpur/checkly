@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { auth } from "@/lib/auth/config";
 import { getInvite } from "@/lib/services/invite";
 import { db } from "@/lib/db";
@@ -7,7 +8,8 @@ import { AcceptForm } from "./accept-form";
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const invite = await getInvite(token);
-  if (!invite) return <AuthIntro title="This invitation has expired">Ask the person who invited you to send a new one.</AuthIntro>;
+  const t = await getTranslations("auth.invite");
+  if (!invite) return <AuthIntro title={t("expiredTitle")}>{t("expiredBody")}</AuthIntro>;
 
   const session = await auth();
   let mode: "new" | "signed-in" | "needs-login" = "new";
@@ -18,9 +20,10 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       mode = me?.email === invite.email ? "signed-in" : "needs-login";
     }
   }
+  const te = await getTranslations("enums");
   return (
     <>
-      <AuthIntro title={`Join ${invite.orgName}`}>You&apos;re invited as {invite.role.toLowerCase()} with {invite.email}.</AuthIntro>
+      <AuthIntro title={t("title", { org: invite.orgName })}>{t("subtitle", { role: te(`role.${invite.role}`).toLowerCase(), email: invite.email })}</AuthIntro>
       <AcceptForm token={token} orgName={invite.orgName} email={invite.email} role={invite.role} mode={mode} />
     </>
   );

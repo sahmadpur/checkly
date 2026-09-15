@@ -13,9 +13,9 @@ export async function currentPushSubscription() {
 }
 
 export async function subscribeToPush(vapidPublicKey: string) {
-  if (!pushSupported()) throw new Error("Push is not supported in this browser");
+  if (!pushSupported()) throw new Error("pushUnsupported"); // key under settings.notifications
   const perm = await Notification.requestPermission();
-  if (perm !== "granted") throw new Error("Notification permission was not granted");
+  if (perm !== "granted") throw new Error("pushDenied");
   const reg = await navigator.serviceWorker.ready;
   return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) });
 }

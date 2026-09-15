@@ -6,23 +6,24 @@ import { normalizePhone } from "@/lib/auth/phone";
 import { createToken, expiresIn, INVITE_TTL_MS, isExpired } from "@/lib/auth/token";
 import { escapeHtml, sendMail } from "@/lib/email";
 import { conflict, forbidden, invalid } from "@/lib/errors";
+import { isLocale, translatorFor } from "@/lib/i18n";
 
 const isUniqueViolation = (e: unknown) =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
-export async function createInvite(ctx: Ctx, input: { email: string; role: Role; propertyIds: string[] }) {
+export async function createInvite(ctx: Ctx, input: { email: string; role: Role; propertyIds: string[] }, locale = "en") {
   const myRole = await requireOrgRole(ctx, "MANAGER");
-  if (!roleAtLeast(myRole, input.role)) throw forbidden("You cannot invite someone with a higher role than yours");
+  if (!roleAtLeast(myRole, input.role)) throw forbidden("inviteHigherRole");
   const email = input.email.trim().toLowerCase();
   const propertyIds = [...new Set(input.propertyIds)];
   if (propertyIds.length) {
     const count = await db.property.count({ where: { id: { in: propertyIds }, orgId: ctx.orgId } });
-    if (count !== propertyIds.length) throw invalid("One or more properties do not belong to this organization");
+    if (count !== propertyIds.length) throw invalid("propertiesNotInOrg");
   }
   const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
   if (existing) {
     const already = await db.orgMember.findUnique({ where: { orgId_userId: { orgId: ctx.orgId, userId: existing.id } } });
-    if (already) throw invalid("That person is already a member");
+    if (already) throw invalid("alreadyMember");
   }
   const org = await db.org.findUniqueOrThrow({ where: { id: ctx.orgId }, select: { name: true } });
   const token = createToken();
@@ -30,10 +31,12 @@ export async function createInvite(ctx: Ctx, input: { email: string; role: Role;
     data: { orgId: ctx.orgId, email, role: input.role, propertyIds, token, expiresAt: expiresIn(INVITE_TTL_MS) },
   });
   const url = `${process.env.APP_URL}/invite/${token}`;
+  const t = translatorFor(locale, "email.invite");
+  const role = translatorFor(locale, "enums.role")(input.role);
   await sendMail({
     to: email,
-    subject: `You're invited to ${org.name} on Checkly`,
-    html: `<p>You've been invited to join <b>${escapeHtml(org.name)}</b> as ${escapeHtml(input.role.toLowerCase())}.</p><p><a href="${url}">${url}</a></p><p>This link expires in 7 days.</p>`,
+    subject: t("subject", { org: org.name }),
+    html: `<p>${t.markup("body", { org: escapeHtml(org.name), role: escapeHtml(role), b: (c) => `<b>${c}</b>` })}</p><p><a href="${url}">${url}</a></p><p>${escapeHtml(t("expires"))}</p>`,
   });
   return { id: invite.id };
 }
@@ -68,10 +71,10 @@ export async function getInvite(token: string) {
 
 export async function acceptInvite(
   token: string,
-  opts: { userId: string } | { name: string; password: string; phone?: string }
+  opts: { userId: string } | { name: string; password: string; phone?: string; locale?: string }
 ) {
   const inv = await loadValidInvite(token);
-  if (!inv) throw invalid("This invite is invalid or expired");
+  if (!inv) throw invalid("inviteInvalid");
   const propertyIds = Array.isArray(inv.propertyIds)
     ? inv.propertyIds.filter((x): x is string => typeof x === "string")
     : [];
@@ -80,7 +83,7 @@ export async function acceptInvite(
   let passwordHash: string | undefined;
   if (!("userId" in opts)) {
     phone = opts.phone?.trim() ? normalizePhone(opts.phone) : null;
-    if (opts.phone?.trim() && !phone) throw invalid("Phone number is not valid");
+    if (opts.phone?.trim() && !phone) throw invalid("phoneInvalid");
     passwordHash = await hashPassword(opts.password);
   }
 
@@ -89,13 +92,13 @@ export async function acceptInvite(
       let userId: string;
       if ("userId" in opts) {
         const user = await tx.user.findUniqueOrThrow({ where: { id: opts.userId }, select: { email: true } });
-        if (user.email !== inv.email) throw forbidden("This invite was sent to a different email address");
+        if (user.email !== inv.email) throw forbidden("inviteDifferentEmail");
         userId = opts.userId;
       } else {
         const existing = await tx.user.findUnique({ where: { email: inv.email }, select: { id: true } });
-        if (existing) throw invalid("An account with this email already exists. Sign in to accept.");
+        if (existing) throw invalid("accountExistsSignIn");
         const user = await tx.user.create({
-          data: { name: opts.name, email: inv.email, phone, passwordHash: passwordHash! },
+          data: { name: opts.name, email: inv.email, phone, passwordHash: passwordHash!, locale: isLocale(opts.locale) ? opts.locale : null },
         });
         userId = user.id;
       }
@@ -120,7 +123,7 @@ export async function acceptInvite(
       return { userId, orgId: inv.orgId };
     });
   } catch (e) {
-    if (isUniqueViolation(e)) throw conflict("An account with that email or phone already exists");
+    if (isUniqueViolation(e)) throw conflict("accountExists");
     throw e;
   }
 }

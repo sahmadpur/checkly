@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 type BIP = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 const KEY = "checkly.installDismissed";
 
 export function InstallBanner() {
+  const t = useTranslations("common.install");
   const [evt, setEvt] = useState<BIP | null>(null);
   const [ios, setIos] = useState(false);
 
@@ -26,10 +28,10 @@ export function InstallBanner() {
 
   return (
     <div className="mx-4 mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-accent px-4 py-3 text-sm text-accent-foreground md:hidden">
-      <span>{ios ? "Install: tap Share, then “Add to Home Screen”." : "Install Checkly for quick access."}</span>
+      <span>{ios ? t("ios") : t("prompt")}</span>
       <div className="flex gap-2">
-        {evt && <Button size="sm" onClick={async () => { await evt.prompt(); dismiss(); }}>Install</Button>}
-        <Button size="sm" variant="ghost" onClick={dismiss}>Not now</Button>
+        {evt && <Button size="sm" onClick={async () => { await evt.prompt(); dismiss(); }}>{t("install")}</Button>}
+        <Button size="sm" variant="ghost" onClick={dismiss}>{t("notNow")}</Button>
       </div>
     </div>
   );

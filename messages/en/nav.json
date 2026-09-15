@@ -1,0 +1,13 @@
+{
+  "items": {
+    "today": "Today",
+    "properties": "Properties",
+    "checklists": "Checklists",
+    "templates": "Templates",
+    "team": "Team",
+    "settings": "Settings"
+  },
+  "main": "Main",
+  "organization": "Organization",
+  "notifications": "Notifications, {count, plural, one {# unread} other {# unread}}"
+}

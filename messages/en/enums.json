@@ -1,0 +1,6 @@
+{
+  "role": { "OWNER": "Owner", "MANAGER": "Manager", "WORKER": "Worker" },
+  "status": { "OPEN": "Open", "OVERDUE": "Overdue", "SUBMITTED": "Submitted", "APPROVED": "Approved", "REJECTED": "Needs rework" },
+  "itemType": { "CHECKBOX": "Checkbox", "TEXT": "Text", "NUMBER": "Number", "SELECT": "Choice", "PHOTO": "Photo", "VIDEO": "Video" },
+  "freq": { "DAILY": "Daily", "WEEKLY": "Weekly", "MONTHLY": "Monthly" }
+}

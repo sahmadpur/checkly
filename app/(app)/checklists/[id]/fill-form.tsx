@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Check } from "lucide-react";
 import { answerItemAction, submitChecklistAction } from "@/actions/instance";
 import type { InstanceDetail, InstanceItemRow } from "@/lib/services/instance";
@@ -14,6 +15,7 @@ import { MediaItem } from "./media-item";
 import { cn } from "cn";
 
 export function FillForm({ instance, mediaUrls }: { instance: InstanceDetail; mediaUrls: Record<string, string> }) {
+  const t = useTranslations("checklists.fill");
   const router = useRouter();
   const [items, setItems] = useState<InstanceItemRow[]>(instance.items);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,7 +49,7 @@ export function FillForm({ instance, mediaUrls }: { instance: InstanceDetail; me
             <li key={i.id} className={cn("space-y-3 rounded-xl bg-card p-4 ring-1 ring-border transition-colors", answered && "ring-primary/30")}>
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="font-medium">{i.label}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{saving[i.id] ? "Saving…" : answered ? "Saved" : i.required ? "Required" : "Optional"}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{saving[i.id] ? t("saving") : answered ? t("saved") : i.required ? t("required") : t("optional")}</span>
               </div>
               {i.type === "CHECKBOX" && (
                 <button type="button" aria-pressed={!!i.checked}
@@ -57,21 +59,21 @@ export function FillForm({ instance, mediaUrls }: { instance: InstanceDetail; me
                   <span className={cn("flex size-7 items-center justify-center rounded-full border-2", i.checked ? "border-white/80 bg-white/15" : "border-input")}>
                     {i.checked && <Check className="size-4" strokeWidth={3} aria-hidden />}
                   </span>
-                  {i.checked ? "Done" : "Mark done"}
+                  {i.checked ? t("done") : t("markDone")}
                 </button>
               )}
               {i.type === "TEXT" && (
-                <Textarea rows={3} defaultValue={i.text ?? ""} placeholder="Type your answer"
+                <Textarea rows={3} defaultValue={i.text ?? ""} placeholder={t("textPlaceholder")}
                   onBlur={(e) => { if (e.target.value !== (i.text ?? "")) save(i, { type: "TEXT", text: e.target.value }, { text: e.target.value }); }} />
               )}
               {i.type === "NUMBER" && (
                 <Input type="number" inputMode="decimal" step="any" min={i.min ?? undefined} max={i.max ?? undefined} defaultValue={i.number ?? ""}
-                  placeholder={i.min !== null || i.max !== null ? `${i.min ?? ""} to ${i.max ?? ""}`.trim() : undefined}
+                  placeholder={i.min !== null || i.max !== null ? t("range", { min: String(i.min ?? ""), max: String(i.max ?? "") }).trim() : undefined}
                   onBlur={(e) => { if (e.target.value !== "") { const n = Number(e.target.value); save(i, { type: "NUMBER", number: n }, { number: n }); } }} />
               )}
               {i.type === "SELECT" && (
                 <Select value={i.choice ?? ""} onChange={(e) => save(i, { type: "SELECT", choice: e.target.value }, { choice: e.target.value })}>
-                  <option value="" disabled>Choose…</option>
+                  <option value="" disabled>{t("choose")}</option>
                   {i.options.map((o) => <option key={o} value={o}>{o}</option>)}
                 </Select>
               )}
@@ -88,12 +90,12 @@ export function FillForm({ instance, mediaUrls }: { instance: InstanceDetail; me
       <div className="sticky bottom-24 z-10 -mx-4 rounded-t-2xl border-t bg-card/95 px-4 pt-3 pb-3 shadow-[0_-8px_24px_-12px_rgba(27,38,36,0.25)] backdrop-blur md:bottom-0 md:-mx-8 md:rounded-none md:px-8">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium">{done} of {required.length} required done</p>
+            <p className="text-sm font-medium">{t("progress", { done, total: required.length })}</p>
             <div className="mt-1.5 h-1.5 w-32 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${required.length ? (done / required.length) * 100 : 100}%` }} /></div>
           </div>
           <Button size="lg" disabled={!complete || pending}
             onClick={() => start(async () => { const r = await submitChecklistAction(instance.id); if (!r.ok) setSubmitError(r.error); else router.refresh(); })}>
-            Submit
+            {t("submit")}
           </Button>
         </div>
         <FormError message={submitError} />

@@ -1,0 +1,16 @@
+{
+  "title": "Уведомления",
+  "markAllRead": "Отметить всё прочитанным",
+  "empty": "Новых уведомлений нет",
+  "copy": {
+    "where": "{template} — {property}",
+    "due": "Срок: {when}",
+    "aWorker": "Работник",
+    "ASSIGNED": "Новый чек-лист: {where}",
+    "DUE_SOON": "Через 1 час: {where}",
+    "OVERDUE": "Просрочен: {where}",
+    "REJECTED": "Нужна доработка: {where}",
+    "APPROVED": "Одобрен: {where}",
+    "SUBMITTED": "{worker} отправил(а): {where}"
+  }
+}

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireUser, requireOrgRole } from "@/lib/auth/guard";
 import { AppError } from "@/lib/errors";
 import { Forbidden } from "@/components/forbidden";
@@ -11,9 +12,10 @@ export default async function NewTemplatePage() {
     if (e instanceof AppError && e.code === "FORBIDDEN") return <Forbidden />;
     throw e;
   }
+  const t = await getTranslations("templates");
   return (
     <div className="space-y-6">
-      <PageHeader title="New template" back={{ href: "/templates", label: "Templates" }} />
+      <PageHeader title={t("new")} back={{ href: "/templates", label: t("title") }} />
       <TemplateBuilder />
     </div>
   );

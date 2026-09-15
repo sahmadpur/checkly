@@ -1,0 +1,16 @@
+{
+  "title": "Notifications",
+  "markAllRead": "Mark all read",
+  "empty": "You're all caught up",
+  "copy": {
+    "where": "{template} at {property}",
+    "due": "Due {when}",
+    "aWorker": "A worker",
+    "ASSIGNED": "New checklist: {where}",
+    "DUE_SOON": "Due in 1 hour: {where}",
+    "OVERDUE": "Overdue: {where}",
+    "REJECTED": "Needs rework: {where}",
+    "APPROVED": "Approved: {where}",
+    "SUBMITTED": "{worker} submitted {where}"
+  }
+}

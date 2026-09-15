@@ -15,6 +15,7 @@ import { parseStatusFilter } from "@/components/checklist-list";
 import { PropertySchedules } from "./schedules";
 import { AssignForm } from "./assign-form";
 import { DeleteProperty } from "./danger";
+import { getLocale, getTranslations } from "next-intl/server";
 
 export default async function PropertyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ status?: string }> }) {
   const { id } = await params;
@@ -37,16 +38,17 @@ export default async function PropertyPage({ params, searchParams }: { params: P
   const instances = await listForProperty(ctx, id, filter ? { status: filter as StatusFilter } : {});
   const templates = canEdit ? await listTemplates(ctx) : [];
   const schedules = canEdit ? await listSchedules(ctx, id) : [];
+  const [t, locale] = await Promise.all([getTranslations("properties"), getLocale()]);
 
   return (
     <div className="space-y-8">
-      <PageHeader title={property.name} back={{ href: "/", label: "Properties" }} description={property.address ?? "No address"} />
+      <PageHeader title={property.name} back={{ href: "/", label: t("index.title") }} description={property.address ?? t("index.noAddress")} />
       <PropertyChecklists propertyId={property.id} instances={instances} filter={filter} />
       {canEdit && <AssignForm propertyId={property.id} templates={templates.map((t) => ({ id: t.id, name: t.name }))} workers={property.members.map((m) => ({ id: m.userId, name: m.name }))} />}
-      {canEdit && <PropertySchedules propertyId={property.id} schedules={schedules} />}
+      {canEdit && <PropertySchedules propertyId={property.id} schedules={schedules} locale={locale} />}
       <PropertyMembers propertyId={property.id} members={property.members} candidates={candidates} canEdit={canEdit} />
       {canEdit && (
-        <Section title="Details" card>
+        <Section title={t("detail.details")} card>
           <PropertyForm property={property} />
         </Section>
       )}

@@ -7,6 +7,8 @@ import { run } from "@/lib/actions";
 import { signIn } from "@/lib/auth/config";
 import { requireSignedIn, requireUser } from "@/lib/auth/guard";
 import { landingForUser } from "@/lib/auth/landing";
+import { cookies } from "next/headers";
+import { getLocale } from "next-intl/server";
 import { throttle } from "@/lib/request";
 import * as svc from "@/lib/services/invite";
 import { inviteSchema, acceptNewSchema } from "@/actions/invite.schemas";
@@ -15,7 +17,7 @@ export async function createInviteAction(input: z.infer<typeof inviteSchema>) {
   return run(async () => {
     await throttle("invite", 20, 0.1);
     const ctx = await requireUser();
-    await svc.createInvite(ctx, inviteSchema.parse(input));
+    await svc.createInvite(ctx, inviteSchema.parse(input), await getLocale());
     revalidatePath("/team");
   });
 }
@@ -33,7 +35,7 @@ export async function acceptInviteNewUserAction(input: z.infer<typeof acceptNewS
   const result = await run(async () => {
     const data = acceptNewSchema.parse(input);
     const info = await svc.getInvite(data.token);
-    const { userId } = await svc.acceptInvite(data.token, { name: data.name, password: data.password, phone: data.phone });
+    const { userId } = await svc.acceptInvite(data.token, { name: data.name, password: data.password, phone: data.phone, locale: (await cookies()).get("locale")?.value });
     await signIn("credentials", { identifier: info!.email, password: data.password, redirect: false });
     return landingForUser(userId);
   });

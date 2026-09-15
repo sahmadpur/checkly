@@ -1,6 +1,7 @@
 "use client";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { signupAction } from "@/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { SubmitButton } from "@/components/submit-button";
 const noop = () => () => {};
 
 export function SignupForm() {
+  const t = useTranslations("auth");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   // Server has no timezone; client value replaces it right after hydration (same pattern as components/local-time.tsx).
@@ -40,16 +42,16 @@ export function SignupForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {field("orgName", "Organization name", { required: true })}
-      {field("name", "Your name", { required: true, autoComplete: "name" })}
-      {field("email", "Email", { type: "email", required: true, autoComplete: "email" })}
-      {field("phone", "Phone (optional)", { type: "tel", placeholder: "+1 415 555 2671", autoComplete: "tel" })}
-      {field("password", "Password (8+ characters)", { type: "password", required: true, minLength: 8, autoComplete: "new-password" })}
+      {field("orgName", t("fields.orgName"), { required: true })}
+      {field("name", t("fields.name"), { required: true, autoComplete: "name" })}
+      {field("email", t("fields.email"), { type: "email", required: true, autoComplete: "email" })}
+      {field("phone", t("fields.phoneOptional"), { type: "tel", placeholder: t("fields.phonePlaceholder"), autoComplete: "tel" })}
+      {field("password", t("fields.password8"), { type: "password", required: true, minLength: 8, autoComplete: "new-password" })}
       <input type="hidden" name="timezone" value={tz} readOnly />
       <FormError message={error} />
-      <SubmitButton pending={pending} className="w-full">Create organization</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">{t("signup.submit")}</SubmitButton>
       <p className="pt-2 text-center text-sm text-muted-foreground">
-        Already have an account? <Link href="/login" className="font-medium text-primary underline underline-offset-4">Sign in</Link>
+        {t("signup.haveAccount")} <Link href="/login" className="font-medium text-primary underline underline-offset-4">{t("signup.signIn")}</Link>
       </p>
     </form>
   );

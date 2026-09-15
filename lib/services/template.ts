@@ -12,17 +12,17 @@ export type TemplateDetail = {
 };
 
 export function validateItems(items: ItemInput[]) {
-  if (items.length === 0) throw invalid("Add at least one item");
+  if (items.length === 0) throw invalid("addItem");
   for (const it of items) {
-    if (!it.label.trim()) throw invalid("Every item needs a label");
+    if (!it.label.trim()) throw invalid("itemLabel");
     if (it.type === "SELECT") {
       const opts = it.options.map((o) => o.trim()).filter(Boolean);
-      if (opts.length < 2) throw invalid(`"${it.label}" needs at least two options`);
-      if (new Set(opts).size !== opts.length) throw invalid(`"${it.label}" has duplicate options`);
-    } else if (it.options.length) throw invalid(`"${it.label}" cannot have options`);
+      if (opts.length < 2) throw invalid("itemTwoOptions", { label: it.label });
+      if (new Set(opts).size !== opts.length) throw invalid("itemDuplicateOptions", { label: it.label });
+    } else if (it.options.length) throw invalid("itemNoOptions", { label: it.label });
     if (it.type === "NUMBER") {
-      if (it.min != null && it.max != null && it.min > it.max) throw invalid(`"${it.label}": min is greater than max`);
-    } else if (it.min != null || it.max != null) throw invalid(`"${it.label}" cannot have min or max`);
+      if (it.min != null && it.max != null && it.min > it.max) throw invalid("itemMinMax", { label: it.label });
+    } else if (it.min != null || it.max != null) throw invalid("itemNoMinMax", { label: it.label });
   }
 }
 
@@ -35,7 +35,7 @@ const toRows = (items: ItemInput[]) =>
 
 async function ownedTemplate(ctx: Ctx, id: string) {
   const t = await db.checklistTemplate.findFirst({ where: { id, orgId: ctx.orgId }, select: { id: true } });
-  if (!t) throw notFound("Template not found");
+  if (!t) throw notFound("templateNotFound");
   return t;
 }
 
@@ -55,7 +55,7 @@ export async function getTemplate(ctx: Ctx, id: string): Promise<TemplateDetail>
     where: { id, orgId: ctx.orgId },
     include: { items: { orderBy: { order: "asc" } } },
   });
-  if (!t) throw notFound("Template not found");
+  if (!t) throw notFound("templateNotFound");
   return {
     id: t.id, name: t.name, description: t.description, archivedAt: t.archivedAt,
     items: t.items.map((i) => ({ id: i.id, order: i.order, type: i.type, label: i.label, required: i.required, options: i.options, min: i.min, max: i.max })),

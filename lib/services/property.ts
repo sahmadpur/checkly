@@ -61,7 +61,7 @@ export async function addPropertyMember(ctx: Ctx, propertyId: string, userId: st
   await requireOrgRole(ctx, "MANAGER");
   await requirePropertyAccess(ctx, propertyId);
   const isMember = await db.orgMember.findUnique({ where: { orgId_userId: { orgId: ctx.orgId, userId } } });
-  if (!isMember) throw invalid("User is not a member of this organization");
+  if (!isMember) throw invalid("userNotInOrg");
   await db.propertyMember.upsert({
     where: { propertyId_userId: { propertyId, userId } },
     create: { propertyId, userId },

@@ -4,7 +4,7 @@ import { Ctx, requireOrgRole, requirePropertyAccess, roleAtLeast } from "@/lib/a
 import { forbidden, invalid, notFound } from "@/lib/errors";
 import { extForMime, isItemAnswered, mediaKey, mediaRule } from "@/lib/media";
 import { objectExists, presignUpload, storageConfigured } from "@/lib/storage";
-import { buildCopy } from "@/lib/notifications/copy";
+import { copyParams } from "@/lib/notifications/copy";
 import { notify, recipientsForSubmitted } from "@/lib/services/notification";
 
 export const isOverdue = (i: { dueAt: Date; status: InstanceStatus }, now = new Date()) =>
@@ -29,20 +29,20 @@ export type CreateInstancesInput = { orgId: string; propertyId: string; template
 /** Creates one instance per assignee with frozen items and ASSIGNED notifications. No session; callers authorize. */
 export async function createInstances(input: CreateInstancesInput, tx?: Prisma.TransactionClient) {
   const assigneeIds = [...new Set(input.assigneeIds)];
-  if (assigneeIds.length === 0) throw invalid("Pick at least one worker");
-  if (assigneeIds.length > 50) throw invalid("Assign to at most 50 workers at a time");
+  if (assigneeIds.length === 0) throw invalid("pickWorker");
+  if (assigneeIds.length > 50) throw invalid("maxWorkers", { max: 50 });
   const client = tx ?? db;
   const tpl = await client.checklistTemplate.findFirst({ where: { id: input.templateId, orgId: input.orgId }, include: { items: { orderBy: { order: "asc" } } } });
-  if (!tpl) throw notFound("Template not found");
-  if (tpl.archivedAt) throw invalid("Template is archived");
-  if (tpl.items.length === 0) throw invalid("Template has no items");
+  if (!tpl) throw notFound("templateNotFound");
+  if (tpl.archivedAt) throw invalid("templateArchived");
+  if (tpl.items.length === 0) throw invalid("templateNoItems");
   const [members, property, org] = await Promise.all([
     client.propertyMember.count({ where: { propertyId: input.propertyId, userId: { in: assigneeIds } } }),
     client.property.findFirst({ where: { id: input.propertyId, orgId: input.orgId }, select: { name: true } }),
     client.org.findUniqueOrThrow({ where: { id: input.orgId }, select: { timezone: true } }),
   ]);
-  if (!property) throw notFound("Property not found");
-  if (members !== assigneeIds.length) throw invalid("Every assignee must be a member of this property");
+  if (!property) throw notFound("propertyNotFound");
+  if (members !== assigneeIds.length) throw invalid("assigneeNotMember");
   const frozen = tpl.items.map((i) => ({ order: i.order, type: i.type, label: i.label, required: i.required, options: i.options, min: i.min, max: i.max }));
 
   const work = async (t: Prisma.TransactionClient) => {
@@ -56,8 +56,8 @@ export async function createInstances(input: CreateInstancesInput, tx?: Prisma.T
         select: { id: true },
       });
       ids.push(row.id);
-      const copy = buildCopy("ASSIGNED", { template: tpl.name, property: property.name, dueAt: input.dueAt, tz: org.timezone, instanceId: row.id });
-      await notify([{ orgId: input.orgId, userId: assigneeId, type: "ASSIGNED", instanceId: row.id, ...copy }], t);
+      const params = copyParams({ template: tpl.name, property: property.name, dueAt: input.dueAt, tz: org.timezone });
+      await notify([{ orgId: input.orgId, userId: assigneeId, type: "ASSIGNED", instanceId: row.id, url: `/checklists/${row.id}`, params }], t);
     }
     return { ids };
   };
@@ -122,10 +122,10 @@ export async function getInstance(ctx: Ctx, id: string) {
       items: { orderBy: { order: "asc" } },
     },
   });
-  if (!r) throw notFound("Checklist not found");
+  if (!r) throw notFound("checklistNotFound");
   const isAssignee = r.assigneeId === ctx.userId;
   const managerAccess = roleAtLeast(role, "MANAGER") && (role === "OWNER" || r.property.members.length > 0);
-  if (!isAssignee && !managerAccess) throw notFound("Checklist not found");
+  if (!isAssignee && !managerAccess) throw notFound("checklistNotFound");
   return {
     ...toSummary({ ...r, property: { name: r.property.name } }),
     reviewComment: r.reviewComment, reviewedAt: r.reviewedAt, reviewedByName: r.reviewedBy?.name ?? null,
@@ -177,64 +177,64 @@ async function ownInstance(ctx: Ctx, instanceId: string) {
     where: { id: instanceId, orgId: ctx.orgId },
     select: { id: true, assigneeId: true, status: true, property: { select: { members: { where: { userId: ctx.userId }, select: { userId: true } } } } },
   });
-  if (!inst) throw notFound("Checklist not found");
+  if (!inst) throw notFound("checklistNotFound");
   if (inst.assigneeId !== ctx.userId) {
     // A manager with access to the instance's property gets FORBIDDEN (they cannot answer for workers); everyone else NOT_FOUND, to avoid leaking existence.
     const managerAccess = roleAtLeast(role, "MANAGER") && (role === "OWNER" || inst.property.members.length > 0);
-    if (managerAccess) throw forbidden("Only the assignee can fill in this checklist");
-    throw notFound("Checklist not found");
+    if (managerAccess) throw forbidden("onlyAssignee");
+    throw notFound("checklistNotFound");
   }
   return inst;
 }
 
 const assertFillable = (status: InstanceStatus) => {
-  if (status !== "OPEN" && status !== "REJECTED") throw invalid(`Checklist is ${status} and cannot be edited`);
+  if (status !== "OPEN" && status !== "REJECTED") throw invalid("statusNotEditable", { status });
 };
 
 export async function answerItem(ctx: Ctx, instanceId: string, itemId: string, value: AnswerValue) {
   const inst = await ownInstance(ctx, instanceId);
   assertFillable(inst.status);
   const item = await db.instanceItem.findFirst({ where: { id: itemId, instanceId } });
-  if (!item) throw notFound("Item not found");
-  if (item.type !== value.type) throw invalid(`"${item.label}" expects a ${item.type.toLowerCase()} answer`);
+  if (!item) throw notFound("itemNotFound");
+  if (item.type !== value.type) throw invalid("itemTypeMismatch", { label: item.label, type: item.type.toLowerCase() });
 
   const data: Prisma.InstanceItemUpdateManyMutationInput = { answeredAt: new Date() };
   switch (value.type) {
     case "CHECKBOX": data.checked = value.checked; break;
     case "TEXT": data.text = value.text.slice(0, 2000); break;
     case "NUMBER":
-      if (!Number.isFinite(value.number)) throw invalid(`"${item.label}" must be a number`);
-      if (item.min != null && value.number < item.min) throw invalid(`"${item.label}" must be at least ${item.min}`);
-      if (item.max != null && value.number > item.max) throw invalid(`"${item.label}" must be at most ${item.max}`);
+      if (!Number.isFinite(value.number)) throw invalid("mustBeNumber", { label: item.label });
+      if (item.min != null && value.number < item.min) throw invalid("atLeast", { label: item.label, min: item.min });
+      if (item.max != null && value.number > item.max) throw invalid("atMost", { label: item.label, max: item.max });
       data.number = value.number; break;
     case "SELECT":
-      if (!item.options.includes(value.choice)) throw invalid(`"${value.choice}" is not an option for "${item.label}"`);
+      if (!item.options.includes(value.choice)) throw invalid("notAnOption", { choice: value.choice, label: item.label });
       data.choice = value.choice; break;
     case "PHOTO":
     case "VIDEO": {
       const ext = extForMime(value.fileType);
-      if (!ext || !mediaRule(value.type).types.includes(value.fileType)) throw invalid("Unsupported file type");
-      if (value.fileKey !== mediaKey(ctx.orgId, instanceId, itemId, ext)) throw invalid("Invalid file key");
+      if (!ext || !mediaRule(value.type).types.includes(value.fileType)) throw invalid("unsupportedFileType");
+      if (value.fileKey !== mediaKey(ctx.orgId, instanceId, itemId, ext)) throw invalid("invalidFileKey");
       // The presigned PUT happens in the browser, so nothing else proves the upload actually landed.
-      if (storageConfigured() && !(await objectExists(value.fileKey))) throw invalid("Upload the file first");
+      if (storageConfigured() && !(await objectExists(value.fileKey))) throw invalid("uploadFirst");
       data.fileKey = value.fileKey; data.fileType = value.fileType; break;
     }
   }
   // Conditional on the instance still being fillable, so a concurrent submit cannot be written around.
   const { count } = await db.instanceItem.updateMany({ where: { id: itemId, instance: { status: { in: ["OPEN", "REJECTED"] } } }, data });
-  if (count === 0) throw invalid("Checklist can no longer be edited");
+  if (count === 0) throw invalid("noLongerEditable");
 }
 
 /** Issues a presigned PUT for a PHOTO or VIDEO item. The key is deterministic per item, so re-uploads overwrite. */
 export async function requestUpload(ctx: Ctx, input: { instanceId: string; itemId: string; contentType: string; sizeBytes: number }) {
   const inst = await getInstance(ctx, input.instanceId);
-  if (!inst.canFill) throw invalid("This checklist cannot be edited");
+  if (!inst.canFill) throw invalid("cannotEdit");
   const item = inst.items.find((i) => i.id === input.itemId);
-  if (!item || (item.type !== "PHOTO" && item.type !== "VIDEO")) throw invalid("Item does not accept files");
+  if (!item || (item.type !== "PHOTO" && item.type !== "VIDEO")) throw invalid("itemNoFiles");
   const rule = mediaRule(item.type);
   const ext = extForMime(input.contentType);
-  if (!ext || !rule.types.includes(input.contentType)) throw invalid(`Unsupported file type ${input.contentType}`);
-  if (input.sizeBytes > rule.maxBytes) throw invalid(`File is too large (max ${Math.round(rule.maxBytes / 1024 / 1024)} MB)`);
+  if (!ext || !rule.types.includes(input.contentType)) throw invalid("unsupportedFileTypeNamed", { type: input.contentType });
+  if (input.sizeBytes > rule.maxBytes) throw invalid("fileTooLarge", { mb: Math.round(rule.maxBytes / 1024 / 1024) });
   const key = mediaKey(ctx.orgId, input.instanceId, input.itemId, ext);
   const url = await presignUpload({ key, contentType: input.contentType, contentLength: input.sizeBytes, expiresSec: rule.presignSec });
   return { url, key };
@@ -245,19 +245,19 @@ export async function submit(ctx: Ctx, instanceId: string) {
   assertFillable(inst.status);
   const items = await db.instanceItem.findMany({ where: { instanceId }, orderBy: { order: "asc" } });
   const missing = items.filter((i) => i.required && !isAnswered(i)).map((i) => i.label);
-  if (missing.length) throw invalid(`Missing: ${missing.join(", ")}`);
+  if (missing.length) throw invalid("missing", { labels: missing.join(", ") });
   const { count } = await db.checklistInstance.updateMany({
     where: { id: instanceId, status: { in: ["OPEN", "REJECTED"] } },
     data: { status: "SUBMITTED", submittedAt: new Date() },
   });
-  if (count === 0) throw invalid("Checklist was already submitted");
+  if (count === 0) throw invalid("alreadySubmitted");
 
   const full = await db.checklistInstance.findUniqueOrThrow({
     where: { id: instanceId }, select: { propertyId: true, templateName: true, dueAt: true, assignee: { select: { name: true } }, property: { select: { name: true } }, org: { select: { timezone: true } } },
   });
   const recipients = await recipientsForSubmitted(ctx.orgId, full.propertyId, ctx.userId);
-  const copy = buildCopy("SUBMITTED", { template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, worker: full.assignee.name, instanceId });
-  await notify(recipients.map((userId) => ({ orgId: ctx.orgId, userId, type: "SUBMITTED" as const, instanceId, ...copy })));
+  const params = copyParams({ template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, worker: full.assignee.name });
+  await notify(recipients.map((userId) => ({ orgId: ctx.orgId, userId, type: "SUBMITTED" as const, instanceId, url: `/checklists/${instanceId}`, params })));
 }
 
 export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" | "REJECTED", comment?: string) {
@@ -266,19 +266,19 @@ export async function review(ctx: Ctx, instanceId: string, decision: "APPROVED" 
     where: { id: instanceId, orgId: ctx.orgId },
     select: { id: true, status: true, propertyId: true, property: { select: { members: { where: { userId: ctx.userId }, select: { userId: true } } } } },
   });
-  if (!inst || (role !== "OWNER" && inst.property.members.length === 0)) throw notFound("Checklist not found");
-  if (inst.status !== "SUBMITTED") throw invalid(`Checklist is ${inst.status}; only submitted checklists can be reviewed`);
+  if (!inst || (role !== "OWNER" && inst.property.members.length === 0)) throw notFound("checklistNotFound");
+  if (inst.status !== "SUBMITTED") throw invalid("notSubmitted", { status: inst.status });
   const text = comment?.trim() || null;
-  if (decision === "REJECTED" && !text) throw invalid("A comment is required when rejecting");
+  if (decision === "REJECTED" && !text) throw invalid("commentRequired");
   const { count } = await db.checklistInstance.updateMany({
     where: { id: instanceId, status: "SUBMITTED" },
     data: { status: decision, reviewedAt: new Date(), reviewedById: ctx.userId, reviewComment: text },
   });
-  if (count === 0) throw invalid("Checklist is no longer awaiting review");
+  if (count === 0) throw invalid("notAwaitingReview");
 
   const full = await db.checklistInstance.findUniqueOrThrow({
     where: { id: instanceId }, select: { assigneeId: true, templateName: true, dueAt: true, property: { select: { name: true } }, org: { select: { timezone: true } } },
   });
-  const copy = buildCopy(decision, { template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, comment: text, instanceId });
-  await notify([{ orgId: ctx.orgId, userId: full.assigneeId, type: decision, instanceId, ...copy }]);
+  const params = copyParams({ template: full.templateName, property: full.property.name, dueAt: full.dueAt, tz: full.org.timezone, comment: text });
+  await notify([{ orgId: ctx.orgId, userId: full.assigneeId, type: decision, instanceId, url: `/checklists/${instanceId}`, params }]);
 }

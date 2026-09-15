@@ -1,0 +1,21 @@
+{
+  "tagline": "Komandanız üçün əmlak yoxlama siyahıları",
+  "pleaseWait": "Gözləyin…",
+  "signOut": "Çıxış",
+  "error": {
+    "title": "Xəta baş verdi.",
+    "body": "Yenidən cəhd edin. Təkrarlanarsa, səhifəni yeniləyin.",
+    "retry": "Yenidən cəhd et"
+  },
+  "forbidden": {
+    "title": "Bu səhifəyə girişiniz yoxdur.",
+    "body": "Girişiniz olmalıdırsa, sahib və ya menecerlə əlaqə saxlayın.",
+    "back": "Əmlaklara qayıt"
+  },
+  "install": {
+    "ios": "Quraşdırmaq üçün: “Paylaş”a, sonra “Əsas ekrana əlavə et”ə toxunun.",
+    "prompt": "Tez giriş üçün Checkly-ni quraşdırın.",
+    "install": "Quraşdır",
+    "notNow": "İndi yox"
+  }
+}

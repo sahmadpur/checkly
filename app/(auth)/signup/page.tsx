@@ -1,10 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import { AuthIntro } from "@/components/auth-intro";
 import { SignupForm } from "./signup-form";
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const t = await getTranslations("auth.signup");
   return (
     <>
-      <AuthIntro title="Create your organization">You become its owner and can invite managers and workers next.</AuthIntro>
+      <AuthIntro title={t("title")}>{t("subtitle")}</AuthIntro>
       <SignupForm />
     </>
   );

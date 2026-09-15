@@ -1,0 +1,24 @@
+{
+  "title": "Team",
+  "memberCount": "{count, plural, one {# member} other {# members}}",
+  "members": "Members",
+  "pending": "Pending invitations",
+  "invite": {
+    "title": "Invite someone",
+    "description": "They get an email with a link to join.",
+    "email": "Email",
+    "role": "Role",
+    "properties": "Properties they work at",
+    "noProperties": "No properties yet. You can add them to properties later.",
+    "sent": "Invitation sent.",
+    "submit": "Send invitation"
+  },
+  "inviteRow": { "expires": "{role} · expires {date}", "revoke": "Revoke" },
+  "memberRow": {
+    "you": "(you)",
+    "properties": "{count, plural, one {# property} other {# properties}}",
+    "roleFor": "Role for {name}",
+    "removeConfirm": "Remove {name} from the organization?",
+    "remove": "Remove"
+  }
+}

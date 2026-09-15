@@ -1,0 +1,16 @@
+{
+  "title": "Bildirişlər",
+  "markAllRead": "Hamısını oxunmuş et",
+  "empty": "Yeni bildiriş yoxdur",
+  "copy": {
+    "where": "{property}: {template}",
+    "due": "Son tarix: {when}",
+    "aWorker": "İşçi",
+    "ASSIGNED": "Yeni yoxlama siyahısı: {where}",
+    "DUE_SOON": "1 saata bitir: {where}",
+    "OVERDUE": "Gecikib: {where}",
+    "REJECTED": "Yenidən işlənməli: {where}",
+    "APPROVED": "Təsdiqləndi: {where}",
+    "SUBMITTED": "{worker} göndərdi: {where}"
+  }
+}

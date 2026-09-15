@@ -1,0 +1,24 @@
+{
+  "title": "Komanda",
+  "memberCount": "{count, plural, other {# üzv}}",
+  "members": "Üzvlər",
+  "pending": "Gözləyən dəvətlər",
+  "invite": {
+    "title": "Kimisə dəvət et",
+    "description": "Qoşulmaq üçün linki olan e-poçt alacaqlar.",
+    "email": "E-poçt",
+    "role": "Rol",
+    "properties": "İşlədiyi obyektlər",
+    "noProperties": "Hələ obyekt yoxdur. Onları sonra obyektlərə əlavə edə bilərsiniz.",
+    "sent": "Dəvət göndərildi.",
+    "submit": "Dəvət göndər"
+  },
+  "inviteRow": { "expires": "{role} · bitmə tarixi {date}", "revoke": "Ləğv et" },
+  "memberRow": {
+    "you": "(siz)",
+    "properties": "{count, plural, other {# obyekt}}",
+    "roleFor": "{name} üçün rol",
+    "removeConfirm": "{name} təşkilatdan çıxarılsın?",
+    "remove": "Çıxar"
+  }
+}

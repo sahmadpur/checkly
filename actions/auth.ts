@@ -2,10 +2,13 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { AuthError } from "next-auth";
 import { run } from "@/lib/actions";
-import { signIn, signOut, unstable_update } from "@/lib/auth/config";
+import { auth, signIn, signOut, unstable_update } from "@/lib/auth/config";
+import { db } from "@/lib/db";
+import { isLocale } from "@/lib/i18n";
 import { requireSignedIn } from "@/lib/auth/guard";
 import { landingForUser } from "@/lib/auth/landing";
 import { throttle, safeNext } from "@/lib/request";
@@ -17,7 +20,7 @@ export async function signupAction(input: z.infer<typeof signupSchema>) {
   const result = await run(async () => {
     await throttle("signup", 5, 0.05);
     const data = signupSchema.parse(input);
-    await svc.signup(data);
+    await svc.signup({ ...data, locale: (await cookies()).get("locale")?.value });
     await signIn("credentials", { identifier: data.email, password: data.password, redirect: false });
   });
   if (result.ok) redirect("/");
@@ -31,14 +34,29 @@ export async function loginAction(input: z.infer<typeof loginSchema>, next?: str
     try {
       await signIn("credentials", { ...data, redirect: false });
     } catch (e) {
-      if (e instanceof AuthError) throw invalid("Incorrect identifier or password");
+      if (e instanceof AuthError) throw invalid("incorrectCredentials");
       throw e;
     }
     const user = await svc.findUserByIdentifier(data.identifier);
+    if (user?.locale) await setLocaleCookie(user.locale);
     return user ? await landingForUser(user.id) : "/";
   });
   if (result.ok) redirect(next ? safeNext(next) : result.data);
   return result;
+}
+
+async function setLocaleCookie(locale: string) {
+  (await cookies()).set("locale", locale, { path: "/", maxAge: 365 * 86400, sameSite: "lax" });
+}
+
+/** Sets the locale cookie and, when signed in, the user's saved locale. */
+export async function setLocaleAction(locale: string) {
+  return run(async () => {
+    if (!isLocale(locale)) throw invalid("invalidInput");
+    await setLocaleCookie(locale);
+    const session = await auth();
+    if (session?.user?.id) await db.user.update({ where: { id: session.user.id }, data: { locale } });
+  });
 }
 
 export async function logoutAction() {
