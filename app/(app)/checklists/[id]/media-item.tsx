@@ -29,7 +29,7 @@ export function MediaItem({ instanceId, itemId, type, existingUrl, onSaved }: Pr
       setProgress(0);
       const req = await requestUploadAction({ instanceId, itemId, contentType, sizeBytes: blob.size });
       if (!req.ok) throw new Error(req.error);
-      await uploadWithProgress(req.data.url, blob, contentType, setProgress);
+      await uploadWithProgress(req.data.url, blob, contentType, setProgress).catch(() => { throw new Error(t("uploadFailed")); });
       const saved = await answerItemAction(instanceId, itemId, { type, fileKey: req.data.key, fileType: contentType });
       if (!saved.ok) throw new Error(saved.error);
       setPreview(URL.createObjectURL(blob));
