@@ -1,0 +1,164 @@
+# Checkly — self-hosted production stack.
+#
+# Same routing pattern as the other apps on this server (freightops, saleswind):
+#   Cloudflare ──tunnel──> Traefik (:80) ──Host()──> checkly-app ──> db / minio
+#
+# Only `app` and `minio` join Traefik's shared `proxy` network; the DB is
+# internal-only. MinIO is reachable on the app's own host under the bucket
+# path prefix so browsers can PUT/GET presigned path-style URLs directly:
+#   https://$APP_HOST/$S3_BUCKET/<key>  ->  minio:9000/$S3_BUCKET/<key>
+# (SigV4 signs the path and Host header unchanged, so no prefix stripping.)
+#
+# Build + run on the server:
+#   cd /home/checkly
+#   cp .env.prod.example .env      # first time only — fill in secrets
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Migrations + bucket init run in the one-shot `migrate` service before `app`.
+
+name: checkly
+
+services:
+  db:
+    image: postgres:16
+    container_name: checkly-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: checkly-minio
+    restart: unless-stopped
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+      # MinIO has no per-bucket CORS API; browsers upload from the app origin.
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${APP_HOST}
+    volumes:
+      - miniodata:/data
+    networks:
+      - default
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      # Longer rule = higher default priority, so this wins over the app's plain Host() rule.
+      - traefik.http.routers.checkly-s3.entrypoints=web
+      - traefik.http.routers.checkly-s3.rule=Host(`${APP_HOST}`) && PathPrefix(`/${S3_BUCKET:-checkly-uploads}/`)
+      - traefik.http.services.checkly-s3.loadbalancer.server.port=9000
+
+  # One-shot: applies Prisma migrations and creates the bucket, then exits.
+  # Uses the Dockerfile's `build` stage (full node_modules + prisma CLI + tsx).
+  migrate:
+    build:
+      context: .
+      target: build
+      args:
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: checkly-migrate:latest
+    container_name: checkly-migrate
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      APP_URL: https://${APP_HOST}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-checkly-uploads}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_FORCE_PATH_STYLE: "true"
+    command: sh -c "pnpm prisma migrate deploy && pnpm storage:init"
+    networks:
+      - default
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: checkly-app:latest
+    container_name: checkly-app
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: https://${APP_HOST}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Checkly <noreply@example.com>}
+      # Traefik overwrites X-Forwarded-For, so it is safe to honor.
+      TRUST_PROXY: "1"
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: https://${APP_HOST}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-checkly-uploads}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_FORCE_PATH_STYLE: "true"
+      CRON_SECRET: ${CRON_SECRET}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+      NODE_ENV: production
+      # Next.js standalone binds to $HOSTNAME (Docker sets it to the container
+      # id = one interface). Force all interfaces so Traefik can reach it.
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+    networks:
+      - default   # reach db / minio
+      - proxy     # reached by Traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.checkly.entrypoints=web
+      - traefik.http.routers.checkly.rule=Host(`${APP_HOST}`)
+      - traefik.http.routers.checkly.middlewares=checkly-https
+      - traefik.http.services.checkly.loadbalancer.server.port=3000
+      # Traefik receives plain http from cloudflared and would report
+      # X-Forwarded-Proto=http. The browser is on https; next-auth (trustHost)
+      # and proxy.ts both key the session cookie's secure flag / name off this
+      # header, so tell the app the truth.
+      - traefik.http.middlewares.checkly-https.headers.customrequestheaders.X-Forwarded-Proto=https
+
+  # Fires the scheduling tick every 5 minutes.
+  cron:
+    image: curlimages/curl:latest
+    container_name: checkly-cron
+    restart: unless-stopped
+    depends_on: [app]
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+    command: >
+      sh -c 'while true; do
+        curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/tick || echo tick failed;
+        sleep 300; done'
+    networks:
+      - default
+
+volumes:
+  dbdata:
+  miniodata:
+
+networks:
+  default:
+  proxy:
+    external: true   # Traefik's shared network
