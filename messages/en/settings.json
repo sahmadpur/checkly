@@ -1,3 +1,45 @@
 {
-  "language": { "title": "Language", "description": "Used for the app, emails and notifications.", "label": "Language" }
+  "title": "Settings",
+  "language": { "title": "Language", "description": "Used for the app, emails and notifications.", "label": "Language" },
+  "profile": {
+    "title": "Profile",
+    "name": "Name",
+    "phone": "Phone",
+    "phonePlaceholder": "+1 415 555 2671",
+    "saved": "Profile saved",
+    "submit": "Save profile"
+  },
+  "password": {
+    "title": "Password",
+    "current": "Current password",
+    "next": "New password",
+    "placeholder": "At least 8 characters",
+    "saved": "Password updated",
+    "submit": "Update password"
+  },
+  "org": {
+    "title": "Organization",
+    "name": "Name",
+    "saved": "Name saved",
+    "submit": "Save name"
+  },
+  "timezone": {
+    "title": "Timezone",
+    "description": "Schedule due times are read in this timezone.",
+    "unset": "Still set to UTC. Confirm the timezone your properties are in.",
+    "label": "Organization timezone",
+    "saved": "Timezone saved",
+    "submit": "Save timezone"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "How Checkly reaches you when something is assigned, due or reviewed.",
+    "push": "Push notifications",
+    "email": "Email notifications",
+    "emailHint": "(add an email to your profile first)",
+    "deviceOff": "Turn off push on this device",
+    "deviceOn": "Turn on push on this device",
+    "unsupported": "Push isn't available in this browser. On iPhone, add Checkly to the Home Screen first.",
+    "failed": "Failed"
+  }
 }

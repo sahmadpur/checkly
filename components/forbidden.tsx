@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 
-export function Forbidden() {
+export async function Forbidden() {
+  const t = await getTranslations("common.forbidden");
   return (
     <div className="mx-auto max-w-sm space-y-3 py-16 text-center">
-      <p className="text-lg font-semibold">You don&apos;t have access to this page.</p>
-      <p className="text-sm text-muted-foreground">Ask an owner or manager if you think you should.</p>
-      <Button variant="outline" render={<Link href="/" />}>Back to properties</Button>
+      <p className="text-lg font-semibold">{t("title")}</p>
+      <p className="text-sm text-muted-foreground">{t("body")}</p>
+      <Button variant="outline" render={<Link href="/" />}>{t("back")}</Button>
     </div>
   );
 }

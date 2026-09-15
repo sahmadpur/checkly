@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { loginAction } from "@/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Notice } from "@/components/notice";
 
 export function LoginForm({ next, notice }: { next?: string; notice?: string }) {
+  const t = useTranslations("auth");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -28,18 +30,18 @@ export function LoginForm({ next, notice }: { next?: string; notice?: string }) 
     <form onSubmit={onSubmit} className="space-y-4">
       {notice && <Notice tone="success">{notice}</Notice>}
       <div className="space-y-1">
-        <Label htmlFor="identifier">Email or phone</Label>
+        <Label htmlFor="identifier">{t("fields.identifier")}</Label>
         <Input id="identifier" name="identifier" autoComplete="username" inputMode="email" autoCapitalize="none" required />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("fields.password")}</Label>
         <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </div>
       <FormError message={error} />
-      <SubmitButton pending={pending} className="w-full">Sign in</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">{t("login.submit")}</SubmitButton>
       <div className="flex flex-col items-center gap-2 pt-2 text-sm text-muted-foreground">
-        <Link href="/forgot" className="underline underline-offset-4 hover:text-foreground">Forgot your password?</Link>
-        <span>New here? <Link href="/signup" className="font-medium text-primary underline underline-offset-4">Create an organization</Link></span>
+        <Link href="/forgot" className="underline underline-offset-4 hover:text-foreground">{t("login.forgot")}</Link>
+        <span>{t("login.newHere")} <Link href="/signup" className="font-medium text-primary underline underline-offset-4">{t("login.createOrg")}</Link></span>
       </div>
     </form>
   );

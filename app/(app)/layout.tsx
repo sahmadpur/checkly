@@ -7,8 +7,7 @@ import { OrgSwitcher } from "@/components/org-switcher";
 import { InstallBanner } from "@/components/install-banner";
 import { NotificationBell } from "@/components/notification-bell";
 import { Mark } from "@/components/brand";
-
-const ROLE_LABEL = { OWNER: "Owner", MANAGER: "Manager", WORKER: "Worker" } as const;
+import { getTranslations } from "next-intl/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId, orgId } = await requireSignedIn();
@@ -16,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const active = orgs.find((o) => o.id === orgId);
   if (!active) redirect(orgs[0] ? `/switch-org?to=${orgs[0].id}` : "/no-org");
   const unread = await unreadCount({ userId, orgId: active.id });
+  const te = await getTranslations("enums");
   return (
     <div className="flex min-h-dvh">
       <AppNav role={active.role} />
@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <OrgSwitcher orgs={orgs} activeOrgId={active.id} />
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">{ROLE_LABEL[active.role]}</span>
+            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">{te(`role.${active.role}`)}</span>
             <NotificationBell unread={unread} />
           </div>
         </header>

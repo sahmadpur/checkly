@@ -1,1 +1,13 @@
-{}
+{
+  "items": {
+    "today": "Bu gün",
+    "properties": "Əmlaklar",
+    "checklists": "Yoxlama siyahıları",
+    "templates": "Şablonlar",
+    "team": "Komanda",
+    "settings": "Tənzimləmələr"
+  },
+  "main": "Əsas",
+  "organization": "Təşkilat",
+  "notifications": "Bildirişlər, {count, plural, one {# oxunmamış} other {# oxunmamış}}"
+}

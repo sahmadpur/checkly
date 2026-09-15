@@ -1,4 +1,7 @@
 {
+  "title": "Bildirişlər",
+  "markAllRead": "Hamısını oxunmuş et",
+  "empty": "Yeni bildiriş yoxdur",
   "copy": {
     "where": "{property}: {template}",
     "due": "Son tarix: {when}",
