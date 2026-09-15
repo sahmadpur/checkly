@@ -22,14 +22,15 @@ export default async function SettingsPage() {
   const org = await db.org.findUniqueOrThrow({ where: { id: ctx.orgId }, select: { name: true, timezone: true } });
   const user = await db.user.findUniqueOrThrow({ where: { id: ctx.userId }, select: { name: true, phone: true, email: true } });
   const prefs = await getPreferences(ctx);
-  const t = await getTranslations("settings.language");
+  const t = await getTranslations("settings");
+  const tc = await getTranslations("common");
   return (
     <div className="space-y-8">
-      <PageHeader title="Settings" />
+      <PageHeader title={t("title")} />
       <ProfileForm name={user.name} phone={user.phone} />
-      <Section title={t("title")} description={t("description")} card>
+      <Section title={t("language.title")} description={t("language.description")} card>
         <div className="space-y-1.5">
-          <Label htmlFor="locale">{t("label")}</Label>
+          <Label htmlFor="locale">{t("language.label")}</Label>
           <LanguageSelect />
         </div>
       </Section>
@@ -38,7 +39,7 @@ export default async function SettingsPage() {
       {role === "OWNER" && <TimezoneForm timezone={org.timezone} options={TIMEZONES} unset={org.timezone === "UTC"} />}
       <PasswordForm />
       <form action={logoutAction}>
-        <Button type="submit" variant="outline" className="w-full sm:w-auto"><LogOut aria-hidden /> Sign out</Button>
+        <Button type="submit" variant="outline" className="w-full sm:w-auto"><LogOut aria-hidden /> {tc("signOut")}</Button>
       </form>
     </div>
   );

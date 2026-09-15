@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-export function NotificationBell({ unread }: { unread: number }) {
+export async function NotificationBell({ unread }: { unread: number }) {
+  const t = await getTranslations("nav");
   const label = unread > 99 ? "99+" : String(unread);
   return (
-    <Link href="/notifications" aria-label={`Notifications, ${unread} unread`}
+    <Link href="/notifications" aria-label={t("notifications", { count: unread })}
       className="relative inline-flex size-10 items-center justify-center rounded-lg text-foreground hover:bg-muted">
       <Bell className="size-5" aria-hidden />
       {unread > 0 && (

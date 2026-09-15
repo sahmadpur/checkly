@@ -1,1 +1,13 @@
-{}
+{
+  "items": {
+    "today": "Сегодня",
+    "properties": "Объекты",
+    "checklists": "Чек-листы",
+    "templates": "Шаблоны",
+    "team": "Команда",
+    "settings": "Настройки"
+  },
+  "main": "Основное",
+  "organization": "Организация",
+  "notifications": "Уведомления, {count, plural, one {# непрочитанное} few {# непрочитанных} many {# непрочитанных} other {# непрочитанных}}"
+}

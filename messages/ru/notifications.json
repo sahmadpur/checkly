@@ -1,4 +1,7 @@
 {
+  "title": "Уведомления",
+  "markAllRead": "Отметить всё прочитанным",
+  "empty": "Новых уведомлений нет",
   "copy": {
     "where": "{template} — {property}",
     "due": "Срок: {when}",

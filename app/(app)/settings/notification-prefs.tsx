@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { deletePushSubscriptionAction, savePushSubscriptionAction, setPreferencesAction } from "@/actions/notification";
 import { currentPushSubscription, pushSupported, subscribeToPush } from "@/lib/client/push";
 import { FormError } from "@/components/form-error";
@@ -9,6 +10,7 @@ import { Section } from "@/components/section";
 const noop = () => () => {};
 
 export function NotificationPrefs({ notifyPush, notifyEmail, hasEmail, vapidKey }: { notifyPush: boolean; notifyEmail: boolean; hasEmail: boolean; vapidKey: string }) {
+  const t = useTranslations("settings.notifications");
   const [error, setError] = useState<string | null>(null);
   const [deviceSubscribed, setDeviceSubscribed] = useState<boolean | null>(null);
   const [pending, start] = useTransition();
@@ -33,21 +35,21 @@ export function NotificationPrefs({ notifyPush, notifyEmail, hasEmail, vapidKey 
         if (!r.ok) throw new Error(r.error);
         setDeviceSubscribed(true);
       }
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed"); }
+    } catch (e) { setError(e instanceof Error ? e.message : t("failed")); }
   });
 
   const setPref = (p: { notifyPush?: boolean; notifyEmail?: boolean }) => start(async () => { const r = await setPreferencesAction(p); if (!r.ok) setError(r.error); });
 
   return (
-    <Section title="Notifications" description="How Checkly reaches you when something is assigned, due or reviewed." card>
+    <Section title={t("title")} description={t("description")} card>
       <div className="space-y-4">
-        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyPush} disabled={pending} onChange={(e) => setPref({ notifyPush: e.target.checked })} /> Push notifications</label>
-        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyEmail} disabled={pending || !hasEmail} onChange={(e) => setPref({ notifyEmail: e.target.checked })} /> Email notifications{!hasEmail && <span className="text-muted-foreground">(add an email to your profile first)</span>}</label>
+        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyPush} disabled={pending} onChange={(e) => setPref({ notifyPush: e.target.checked })} /> {t("push")}</label>
+        <label className="flex items-center gap-3 text-sm"><input type="checkbox" defaultChecked={notifyEmail} disabled={pending || !hasEmail} onChange={(e) => setPref({ notifyEmail: e.target.checked })} /> {t("email")}{!hasEmail && <span className="text-muted-foreground">{t("emailHint")}</span>}</label>
         {supported ? (
           <Button type="button" variant="outline" disabled={pending || deviceSubscribed === null} onClick={toggleDevice}>
-            {deviceSubscribed ? "Turn off push on this device" : "Turn on push on this device"}
+            {deviceSubscribed ? t("deviceOff") : t("deviceOn")}
           </Button>
-        ) : <p className="text-sm text-muted-foreground">Push isn&apos;t available in this browser. On iPhone, add Checkly to the Home Screen first.</p>}
+        ) : <p className="text-sm text-muted-foreground">{t("unsupported")}</p>}
         <FormError message={error} />
       </div>
     </Section>

@@ -2,20 +2,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ClipboardList, LayoutTemplate, LogOut, Settings, Sun, Users, type LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { logoutAction } from "@/actions/auth";
 import { Role } from "@prisma/client";
 import { Wordmark } from "@/components/brand";
 import { cn } from "cn";
 
-type Item = { href: string; label: string; icon: LucideIcon };
+type Item = { href: string; label: "today" | "properties" | "checklists" | "templates" | "team" | "settings"; icon: LucideIcon };
 const items = (role: Role): Item[] => [
-  ...(role === "WORKER" ? [{ href: "/today", label: "Today", icon: Sun }] : []),
-  { href: "/", label: "Properties", icon: Building2 },
-  ...(role !== "WORKER" ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList }, { href: "/templates", label: "Templates", icon: LayoutTemplate }, { href: "/team", label: "Team", icon: Users }] : []),
-  { href: "/settings", label: "Settings", icon: Settings },
+  ...(role === "WORKER" ? [{ href: "/today", label: "today" as const, icon: Sun }] : []),
+  { href: "/", label: "properties", icon: Building2 },
+  ...(role !== "WORKER" ? [{ href: "/checklists", label: "checklists" as const, icon: ClipboardList }, { href: "/templates", label: "templates" as const, icon: LayoutTemplate }, { href: "/team", label: "team" as const, icon: Users }] : []),
+  { href: "/settings", label: "settings", icon: Settings },
 ];
 
 export function AppNav({ role }: { role: Role }) {
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
   const path = usePathname();
   const links = items(role);
   const hasChecklists = links.some((l) => l.href === "/checklists");
@@ -30,22 +33,22 @@ export function AppNav({ role }: { role: Role }) {
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined}
               className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-              <Icon className="size-5" aria-hidden /> {label}
+              <Icon className="size-5" aria-hidden /> {t(`items.${label}`)}
             </Link>
           );
         })}
         <form action={logoutAction} className="mt-auto">
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><LogOut className="size-5" aria-hidden /> Sign out</button>
+          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"><LogOut className="size-5" aria-hidden /> {tc("signOut")}</button>
         </form>
       </aside>
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 flex border-t bg-card/95 px-2 pt-1 pb-safe backdrop-blur md:hidden">
+      <nav aria-label={t("main")} className="fixed inset-x-0 bottom-0 z-20 flex border-t bg-card/95 px-2 pt-1 pb-safe backdrop-blur md:hidden">
         {links.map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (
             <Link key={href} href={href} aria-current={active ? "page" : undefined}
               className={cn("flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
               <Icon className={cn("size-6", active && "fill-primary/15")} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
-              <span className="truncate">{label}</span>
+              <span className="truncate">{t(`items.${label}`)}</span>
             </Link>
           );
         })}

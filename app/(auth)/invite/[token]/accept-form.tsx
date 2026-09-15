@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 import { acceptInviteExistingAction, acceptInviteNewUserAction } from "@/actions/invite";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,14 +11,15 @@ import { SubmitButton } from "@/components/submit-button";
 type Props = { token: string; orgName: string; email: string; role: string; mode: "new" | "signed-in" | "needs-login" };
 
 export function AcceptForm({ token, email, mode }: Props) {
+  const t = useTranslations("auth");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   if (mode === "needs-login") {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">You already have an account. Sign in with {email} to accept.</p>
-        <Button render={<a href={`/login?next=/invite/${token}`} />} className="w-full">Sign in</Button>
+        <p className="text-sm text-muted-foreground">{t("invite.needsLogin", { email })}</p>
+        <Button render={<a href={`/login?next=/invite/${token}`} />} className="w-full">{t("invite.signIn")}</Button>
       </div>
     );
   }
@@ -34,7 +36,7 @@ export function AcceptForm({ token, email, mode }: Props) {
             if (res && !res.ok) setError(res.error);
           })}
         >
-          Accept invitation
+          {t("invite.accept")}
         </Button>
       </div>
     );
@@ -57,11 +59,11 @@ export function AcceptForm({ token, email, mode }: Props) {
       }}
       className="space-y-4"
     >
-      <div className="space-y-1"><Label htmlFor="name">Your name</Label><Input id="name" name="name" required /></div>
-      <div className="space-y-1"><Label htmlFor="phone">Phone (optional)</Label><Input id="phone" name="phone" type="tel" placeholder="+1 415 555 2671" /></div>
-      <div className="space-y-1"><Label htmlFor="password">Password (8+ characters)</Label><Input id="password" name="password" type="password" minLength={8} required /></div>
+      <div className="space-y-1"><Label htmlFor="name">{t("fields.name")}</Label><Input id="name" name="name" required /></div>
+      <div className="space-y-1"><Label htmlFor="phone">{t("fields.phoneOptional")}</Label><Input id="phone" name="phone" type="tel" placeholder={t("fields.phonePlaceholder")} /></div>
+      <div className="space-y-1"><Label htmlFor="password">{t("fields.password8")}</Label><Input id="password" name="password" type="password" minLength={8} required /></div>
       <FormError message={error} />
-      <SubmitButton pending={pending} className="w-full">Create account and join</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">{t("invite.submit")}</SubmitButton>
     </form>
   );
 }
