@@ -13,6 +13,7 @@ Property operations for small teams. Managers create properties, invite staff, b
 - **Review.** Managers approve, or reject with a comment, which reopens the checklist for the same worker.
 - **Notifications.** In-app inbox with a bell, web push (VAPID), and email: assigned, due in one hour, overdue, submitted (to managers), rejected, approved. Per-user push and email toggles.
 - **PWA.** Installable, precached shell, no offline data by design.
+- **Languages.** English, Azerbaijani and Russian. Picked from the browser language on first visit, switchable on the sign-in page and in Settings; the choice is saved per user and used for emails and push notifications too.
 
 ## Accounts for local testing
 
@@ -63,12 +64,14 @@ Things that differ from older tutorials:
 app/            routes (App Router); (auth) public pages, (app) signed-in shell
 actions/        server actions; zod schemas live in *.schemas.ts
 lib/services/   all business logic and authorization (org scoping, roles)
-lib/            auth, storage, email, media rules, recurrence math, notifications
+lib/            auth, storage, email, media rules, recurrence math, notifications, i18n
 prisma/         schema, migrations, seed
 tests/          vitest unit and service tests (real Postgres)
 e2e/            Playwright flows
 docs/superpowers/specs, plans   design documents for each sub-project
 ```
+
+UI text lives in `messages/<locale>/<namespace>.json` (next-intl, no URL prefix; locale from the `locale` cookie, then `Accept-Language`). Server errors are message keys under `errors.*`, translated in `lib/actions.ts`. Notifications store their parameters and are rendered in the reader's language. The Azerbaijani and Russian copy was machine-drafted and needs a native review.
 
 Authorization lives in `lib/services/*`: every function takes the caller's `{ userId, orgId }` from the session and scopes every query by org. Pages and actions never pass an org id from the client.
 
@@ -151,3 +154,4 @@ Open http://localhost:3000. `pnpm dev` and the compose `app` service both bind p
 - Rate limiting is per IP; behind a proxy without `TRUST_PROXY=1` all clients share one bucket.
 - Media: no cleanup of replaced or orphaned files; re-uploading in a different format leaves the old object behind.
 - Schedules whose workers were all removed are skipped with a warning until the missed days age past the catch-up window.
+- Zod validation messages for az/ru come from zod's built-in locale maps; the PWA manifest stays English.
