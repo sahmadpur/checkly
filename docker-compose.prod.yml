@@ -139,7 +139,7 @@ services:
       # header, so tell the app the truth.
       - traefik.http.middlewares.checkly-https.headers.customrequestheaders.X-Forwarded-Proto=https
 
-  # Fires the scheduling tick every 5 minutes.
+  # Fires the scheduling tick (generation, reminders, outbox push/email) every minute.
   cron:
     image: curlimages/curl:latest
     container_name: checkly-cron
@@ -150,7 +150,7 @@ services:
     command: >
       sh -c 'while true; do
         curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/tick || echo tick failed;
-        sleep 300; done'
+        sleep 60; done'
     networks:
       - default
 
