@@ -1,1 +1,36 @@
-{}
+{
+  "title": "Şablonlar",
+  "description": "Obyektlərdə təyin etdiyiniz və ya cədvələ saldığınız təkrar istifadə olunan yoxlama siyahıları.",
+  "hideArchived": "Arxivi gizlət",
+  "showArchived": "Arxivi göstər",
+  "new": "Yeni şablon",
+  "empty": "İlk şablonunuzu yaradın",
+  "emptyHint": "Növbə təmizliyi, həftəlik yoxlama, hovuz yoxlaması: komandanızın təkrarladığı hər şey.",
+  "itemCount": "{count, plural, other {# bənd}}{archived, select, yes { · arxivlənib} other {}}",
+  "archivedNote": "Arxivlənib. Bunu istifadə edən cədvəllər arxivdən çıxarılana qədər yeni siyahı yaratmır.",
+  "archive": "Arxivlə",
+  "unarchive": "Arxivdən çıxar",
+  "builder": {
+    "details": "Məlumatlar",
+    "name": "Ad",
+    "namePlaceholder": "Növbə təmizliyi",
+    "description": "Təsvir",
+    "descriptionPlaceholder": "İstəyə bağlı",
+    "items": "Bəndlər",
+    "itemsDescription": "İşçilər bunları bu ardıcıllıqla görür.",
+    "itemType": "Bənd növü",
+    "itemLabel": "Bənd adı",
+    "itemLabelPlaceholder": "Nə edilməlidir?",
+    "options": "Variantlar, hər sətirdə biri",
+    "optionsPlaceholder": "Hər sətirdə bir variant",
+    "min": "Min",
+    "max": "Maks",
+    "required": "Məcburi",
+    "moveUp": "Yuxarı",
+    "moveDown": "Aşağı",
+    "removeItem": "Bəndi sil",
+    "saved": "Şablon yadda saxlanıldı",
+    "save": "Şablonu yadda saxla",
+    "create": "Şablon yarat"
+  }
+}

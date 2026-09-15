@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/guard";
 import { listAll, type StatusFilter } from "@/lib/services/instance";
 import { AppError } from "@/lib/errors";
@@ -11,6 +12,7 @@ import { AssignForm } from "../properties/[id]/assign-form";
 
 export default async function ChecklistsPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const ctx = await requireUser();
+  const t = await getTranslations("checklists.list");
   const filter = parseStatusFilter((await searchParams).status);
   let instances;
   try {
@@ -23,9 +25,9 @@ export default async function ChecklistsPage({ searchParams }: { searchParams: P
   const options = properties.map((p) => ({ id: p.id, name: p.name, workers: members.filter((m) => m.propertyIds.includes(p.id)).map((m) => ({ id: m.userId, name: m.name })) }));
   return (
     <div className="space-y-8">
-      <PageHeader title="Checklists" description="Everything assigned across your properties. Open one to see the answers." />
+      <PageHeader title={t("title")} description={t("description")} />
       <ChecklistList basePath="/checklists" instances={instances} filter={filter} subtitle={(i) => `${i.propertyName} · ${i.assigneeName}`}
-        empty="No checklists yet. Assign one below." />
+        empty={t("empty")} />
       <AssignForm properties={options} templates={templates.map((t) => ({ id: t.id, name: t.name }))} />
     </div>
   );

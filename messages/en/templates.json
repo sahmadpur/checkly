@@ -1,1 +1,36 @@
-{}
+{
+  "title": "Templates",
+  "description": "Reusable checklists you assign or schedule at properties.",
+  "hideArchived": "Hide archived",
+  "showArchived": "Show archived",
+  "new": "New template",
+  "empty": "Build your first template",
+  "emptyHint": "A turnover clean, a weekly inspection, a pool check: anything your team repeats.",
+  "itemCount": "{count, plural, one {# item} other {# items}}{archived, select, yes { · archived} other {}}",
+  "archivedNote": "Archived. Schedules using it stop generating until you unarchive it.",
+  "archive": "Archive",
+  "unarchive": "Unarchive",
+  "builder": {
+    "details": "Details",
+    "name": "Name",
+    "namePlaceholder": "Turnover clean",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional",
+    "items": "Items",
+    "itemsDescription": "Workers see these in this order.",
+    "itemType": "Item type",
+    "itemLabel": "Item label",
+    "itemLabelPlaceholder": "What needs doing?",
+    "options": "Options, one per line",
+    "optionsPlaceholder": "One option per line",
+    "min": "Min",
+    "max": "Max",
+    "required": "Required",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "removeItem": "Remove item",
+    "saved": "Template saved",
+    "save": "Save template",
+    "create": "Create template"
+  }
+}
