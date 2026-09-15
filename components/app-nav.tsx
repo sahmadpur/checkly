@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutTemplate, LogOut, Settings, Sun, Users, type LucideIcon } from "lucide-react";
+import { Building2, ClipboardList, LayoutTemplate, LogOut, Settings, Sun, Users, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { Role } from "@prisma/client";
 import { Wordmark } from "@/components/brand";
@@ -11,14 +11,16 @@ type Item = { href: string; label: string; icon: LucideIcon };
 const items = (role: Role): Item[] => [
   ...(role === "WORKER" ? [{ href: "/today", label: "Today", icon: Sun }] : []),
   { href: "/", label: "Properties", icon: Building2 },
-  ...(role !== "WORKER" ? [{ href: "/templates", label: "Templates", icon: LayoutTemplate }, { href: "/team", label: "Team", icon: Users }] : []),
+  ...(role !== "WORKER" ? [{ href: "/checklists", label: "Checklists", icon: ClipboardList }, { href: "/templates", label: "Templates", icon: LayoutTemplate }, { href: "/team", label: "Team", icon: Users }] : []),
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function AppNav({ role }: { role: Role }) {
   const path = usePathname();
-  const isActive = (href: string) => (href === "/" ? path === "/" || path.startsWith("/properties") || path.startsWith("/checklists") || path.startsWith("/schedules") : path.startsWith(href));
   const links = items(role);
+  const hasChecklists = links.some((l) => l.href === "/checklists");
+  const isActive = (href: string) =>
+    href === "/" ? path === "/" || path.startsWith("/properties") || path.startsWith("/schedules") || (!hasChecklists && path.startsWith("/checklists")) : path.startsWith(href);
   return (
     <>
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-1 border-r bg-sidebar p-4 md:flex">

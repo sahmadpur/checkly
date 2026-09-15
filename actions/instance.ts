@@ -13,6 +13,7 @@ export async function assignChecklistAction(input: z.input<typeof assignSchema>)
     const data = assignSchema.parse(input);
     const out = await svc.assign(ctx, data);
     revalidatePath(`/properties/${data.propertyId}`);
+    revalidatePath("/checklists");
     return out;
   });
 }

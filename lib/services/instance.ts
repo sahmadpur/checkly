@@ -70,15 +70,29 @@ export async function assign(ctx: Ctx, input: { templateId: string; propertyId: 
   return createInstances({ orgId: ctx.orgId, ...input, assignedById: ctx.userId });
 }
 
-export async function listForProperty(ctx: Ctx, propertyId: string, opts: { status?: InstanceStatus | "OVERDUE" } = {}) {
+export type StatusFilter = InstanceStatus | "OVERDUE";
+
+const statusWhere = (status?: StatusFilter): Prisma.ChecklistInstanceWhereInput =>
+  status === "OVERDUE" ? { status: { in: ["OPEN", "REJECTED"] }, dueAt: { lt: new Date() } } : status ? { status } : {};
+
+export async function listForProperty(ctx: Ctx, propertyId: string, opts: { status?: StatusFilter } = {}) {
   const { role } = await requirePropertyAccess(ctx, propertyId);
   // Workers only ever see their own work; managers and owners see the whole property.
-  const where: Prisma.ChecklistInstanceWhereInput = { orgId: ctx.orgId, propertyId, ...(role === "WORKER" ? { assigneeId: ctx.userId } : {}) };
-  if (opts.status === "OVERDUE") {
-    where.status = { in: ["OPEN", "REJECTED"] };
-    where.dueAt = { lt: new Date() };
-  } else if (opts.status) where.status = opts.status;
+  const where: Prisma.ChecklistInstanceWhereInput = { orgId: ctx.orgId, propertyId, ...(role === "WORKER" ? { assigneeId: ctx.userId } : {}), ...statusWhere(opts.status) };
   const rows = await db.checklistInstance.findMany({ where, select: summarySelect, orderBy: { dueAt: "asc" } });
+  return rows.map(toSummary);
+}
+
+/** Every instance a manager or owner may see: owners the whole org, managers only properties they belong to. */
+export async function listAll(ctx: Ctx, opts: { status?: StatusFilter } = {}) {
+  const role = await requireOrgRole(ctx, "MANAGER");
+  const where: Prisma.ChecklistInstanceWhereInput = {
+    orgId: ctx.orgId,
+    ...(role === "OWNER" ? {} : { property: { members: { some: { userId: ctx.userId } } } }),
+    ...statusWhere(opts.status),
+  };
+  // ponytail: no pagination; cap at 500 rows, add cursor paging when an org outgrows it.
+  const rows = await db.checklistInstance.findMany({ where, select: summarySelect, orderBy: { dueAt: "asc" }, take: 500 });
   return rows.map(toSummary);
 }
 
