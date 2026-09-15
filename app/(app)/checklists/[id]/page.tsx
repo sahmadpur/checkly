@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth/guard";
 import { getInstance } from "@/lib/services/instance";
 import { presignDownload, storageConfigured } from "@/lib/storage";
@@ -15,6 +16,7 @@ import { FillForm } from "./fill-form";
 export default async function ChecklistPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requireUser();
+  const [t, locale] = await Promise.all([getTranslations("checklists.detail"), getLocale()]);
   let inst;
   try {
     inst = await getInstance(ctx, id);
@@ -38,17 +40,17 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
         title={<span className="flex flex-wrap items-center gap-x-3 gap-y-1">{inst.templateName} <StatusBadge status={inst.status} overdue={inst.overdue} /></span>}
         back={{ href: `/properties/${inst.propertyId}`, label: inst.propertyName }}
         description={<>
-          Due <LocalTime iso={inst.dueAt.toISOString()} fallback={formatDateTime(inst.dueAt)} className={inst.overdue ? "font-medium text-destructive" : undefined} /> · {inst.assigneeName}
-          {inst.scheduleName && <> · from schedule {inst.scheduleName}</>}
+          {t("due")} <LocalTime iso={inst.dueAt.toISOString()} fallback={formatDateTime(inst.dueAt, locale)} className={inst.overdue ? "font-medium text-destructive" : undefined} /> · {inst.assigneeName}
+          {inst.scheduleName && <> · {t("fromSchedule", { name: inst.scheduleName })}</>}
         </>}
       />
       {inst.status === "REJECTED" && inst.reviewComment && (
         <Notice tone="warning">
-          <p className="font-medium">Sent back{inst.reviewedByName ? ` by ${inst.reviewedByName}` : ""}</p>
+          <p className="font-medium">{inst.reviewedByName ? t("sentBackBy", { name: inst.reviewedByName }) : t("sentBack")}</p>
           <p className="whitespace-pre-wrap">{inst.reviewComment}</p>
         </Notice>
       )}
-      {inst.status === "APPROVED" && inst.reviewComment && <Notice tone="success">Reviewer note: {inst.reviewComment}</Notice>}
+      {inst.status === "APPROVED" && inst.reviewComment && <Notice tone="success">{t("reviewerNote", { comment: inst.reviewComment })}</Notice>}
       {inst.canFill ? <FillForm instance={inst} mediaUrls={mediaUrls} /> : <AnswerView items={inst.items} mediaUrls={mediaUrls} downloadUrls={downloadUrls} />}
       {inst.canReview && <ReviewForm instanceId={inst.id} />}
     </div>
